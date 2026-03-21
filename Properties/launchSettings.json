@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Bridge (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Bridge (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
