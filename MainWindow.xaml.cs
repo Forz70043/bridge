@@ -28,6 +28,7 @@ namespace Bridge
         private Dictionary<string, WslDistro> _map = new Dictionary<string, WslDistro>(StringComparer.OrdinalIgnoreCase);
         private Microsoft.UI.Xaml.DispatcherTimer _refreshTimer;
         private bool _isLoading = false;
+        private string _searchQuery = string.Empty;
 
         public MainWindow()
         {
@@ -119,9 +120,14 @@ namespace Bridge
         private void ApplyFilter()
         {
             // Build desired list from the master map, then update _visibleDistros in-place to preserve binding
-            var desired = (OnlyRunningToggle != null && OnlyRunningToggle.IsOn)
-                ? _map.Values.Where(d => string.Equals(d.Status, "Running", StringComparison.OrdinalIgnoreCase)).ToList()
-                : _map.Values.ToList();
+            var query = (_searchQuery ?? string.Empty).Trim();
+            var baseList = (OnlyRunningToggle != null && OnlyRunningToggle.IsOn)
+                ? _map.Values.Where(d => string.Equals(d.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                : _map.Values;
+
+            var desired = string.IsNullOrEmpty(query)
+                ? baseList.ToList()
+                : baseList.Where(d => d.Name != null && d.Name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
 
             var desiredNames = new HashSet<string>(desired.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
 
@@ -153,6 +159,14 @@ namespace Bridge
          */
         private void OnlyRunning_Toggled(object sender, RoutedEventArgs e)
         {
+            ApplyFilter();
+        }
+
+        // Search box handler: update query and reapply filter
+        private void SearchBox_TextChanged(object sender, RoutedEventArgs e)
+        {
+            var tb = sender as TextBox;
+            _searchQuery = tb?.Text ?? string.Empty;
             ApplyFilter();
         }
 
@@ -206,10 +220,20 @@ namespace Bridge
         // Added missing event handler referenced from XAML: Delete_Click
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
+            _ = Delete_Click_Impl(sender, e);
+        }
+
+        // Async implementation for per-item delete with confirmation
+        private async Task Delete_Click_Impl(object sender, RoutedEventArgs e)
+        {
             var distro = (sender as Button).DataContext as WslDistro;
-            // Minimal implementation to satisfy XAML reference and avoid additional changes.
-            // Replace with actual delete/unregister logic as needed.
-            System.Diagnostics.Debug.WriteLine($"Delete requested for distro: {distro?.Name}");
+            if (distro == null) return;
+
+            var ok = await ConfirmAsync("Unregister distribution", $"Sei sicuro di voler rimuovere la distro '{distro.Name}'? Queste operazioni non sono reversibili.", "Unregister", "Annulla");
+            if (!ok) return;
+
+            // For safety, currently only log. Replace with actual unregister command when ready.
+            System.Diagnostics.Debug.WriteLine($"Delete confirmed for distro: {distro.Name}");
         }
 
         /**
@@ -223,6 +247,80 @@ namespace Bridge
                 _refreshTimer.Stop();
                 _refreshTimer = null;
             }
+        }
+
+        // Top app bar actions (map to selected items)
+        private async void TopDelete_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
+            if (!selected.Any()) return;
+
+            var names = string.Join(", ", selected.Select(s => s.Name));
+            var ok = await ConfirmAsync("Unregister distributions", $"Sei sicuro di voler rimuovere le distro: {names}? Queste operazioni non sono reversibili.", "Unregister", "Annulla");
+            if (!ok) return;
+
+            foreach (var d in selected)
+            {
+                System.Diagnostics.Debug.WriteLine($"Top delete confirmed for: {d.Name}");
+            }
+        }
+
+        private void TopPlay_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
+            foreach (var d in selected)
+            {
+                new WslEngine().StartTerminal(d.Name);
+            }
+        }
+
+        private async void TopPause_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
+            if (!selected.Any()) return;
+
+            var names = string.Join(", ", selected.Select(s => s.Name));
+            var ok = await ConfirmAsync("Pause distributions", $"Sei sicuro di voler sospendere (terminate) le distro: {names}?", "Sospendi", "Annulla");
+            if (!ok) return;
+
+            foreach (var d in selected)
+            {
+                // There is no direct 'suspend' in WSL; terminating will stop the distro's processes.
+                await new WslEngine().TerminateDistro(d.Name);
+            }
+            await LoadDistros();
+        }
+
+        private async void TopStop_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
+            if (!selected.Any()) return;
+
+            var names = string.Join(", ", selected.Select(s => s.Name));
+            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "Annulla");
+            if (!ok) return;
+
+            foreach (var d in selected)
+            {
+                await new WslEngine().TerminateDistro(d.Name);
+            }
+            await LoadDistros();
+        }
+
+        // Utility: show a confirmation dialog and return true if primary button pressed
+        private async Task<bool> ConfirmAsync(string title, string content, string primaryText = "OK", string secondaryText = "Cancel")
+        {
+            var dlg = new ContentDialog
+            {
+                Title = title,
+                Content = content,
+                PrimaryButtonText = primaryText,
+                CloseButtonText = secondaryText,
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            var result = await dlg.ShowAsync();
+            return result == ContentDialogResult.Primary;
         }
     }
 }
