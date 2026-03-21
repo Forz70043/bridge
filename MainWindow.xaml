@@ -20,15 +20,15 @@
         </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0" Orientation="Horizontal" Padding="20" Spacing="15" Background="#1a1a1a">
-            <TextBox PlaceholderText="Search wsl..." Width="300" Background="#252525" BorderThickness="0"/>
+            <TextBox x:Name="SearchBox" PlaceholderText="Search wsl..." Width="300" Background="#252525" BorderThickness="0" TextChanged="SearchBox_TextChanged"/>
             <ToggleSwitch x:Name="OnlyRunningToggle" OnContent="Only running" OffContent="Show all" IsOn="False" Toggled="OnlyRunning_Toggled" VerticalAlignment="Center"/>
 
             <CommandBar Background="Transparent" IsOpen="False" DefaultLabelPosition="Right" HorizontalAlignment="Right">
-                <AppBarButton Icon="Delete" Label="Delete" Foreground="#ff5555"/>
+                <AppBarButton Icon="Delete" Label="Delete" Foreground="#ff5555" Click="TopDelete_Click"/>
                 <AppBarSeparator/>
-                <AppBarButton Icon="Play" Foreground="#4e94ff"/>
-                <AppBarButton Icon="Pause" Foreground="#4e94ff"/>
-                <AppBarButton Icon="Stop" Foreground="#4e94ff"/>
+                <AppBarButton Icon="Play" Foreground="#4e94ff" Click="TopPlay_Click"/>
+                <AppBarButton Icon="Pause" Foreground="#4e94ff" Click="TopPause_Click"/>
+                <AppBarButton Icon="Stop" Foreground="#4e94ff" Click="TopStop_Click"/>
             </CommandBar>
         </StackPanel>
 
