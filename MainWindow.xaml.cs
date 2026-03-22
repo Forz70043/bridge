@@ -231,9 +231,21 @@ namespace Bridge
 
             var ok = await ConfirmAsync("Unregister distribution", $"Sei sicuro di voler rimuovere la distro '{distro.Name}'? Queste operazioni non sono reversibili.", "Unregister", "Annulla");
             if (!ok) return;
+            try
+            {
+                // show per-item spinner
+                distro.IsBusy = true;
 
-            // For safety, currently only log. Replace with actual unregister command when ready.
-            System.Diagnostics.Debug.WriteLine($"Delete confirmed for distro: {distro.Name}");
+                await new WslEngine().UnregisterDistro(distro.Name);
+                System.Diagnostics.Debug.WriteLine($"Delete completed for distro: {distro.Name}");
+                _map.Remove(distro.Name);
+                ShowToast($"Distro {distro.Name} rimossa", TimeSpan.FromSeconds(4));
+            }
+            finally
+            {
+                distro.IsBusy = false;
+                await LoadDistros();
+            }
         }
 
         /**
@@ -261,8 +273,13 @@ namespace Bridge
 
             foreach (var d in selected)
             {
-                System.Diagnostics.Debug.WriteLine($"Top delete confirmed for: {d.Name}");
+                await new WslEngine().UnregisterDistro(d.Name);
+                System.Diagnostics.Debug.WriteLine($"Top delete completed for: {d.Name}");
+                _map.Remove(d.Name);
+                ShowToast($"Distro {d.Name} rimossa", TimeSpan.FromSeconds(4));
             }
+
+            await LoadDistros();
         }
 
         private void TopPlay_Click(object sender, RoutedEventArgs e)
@@ -274,35 +291,19 @@ namespace Bridge
             }
         }
 
-        private async void TopPause_Click(object sender, RoutedEventArgs e)
-        {
-            var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
-            if (!selected.Any()) return;
-
-            var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Pause distributions", $"Sei sicuro di voler sospendere (terminate) le distro: {names}?", "Sospendi", "Annulla");
-            if (!ok) return;
-
-            foreach (var d in selected)
-            {
-                // There is no direct 'suspend' in WSL; terminating will stop the distro's processes.
-                await new WslEngine().TerminateDistro(d.Name);
-            }
-            await LoadDistros();
-        }
-
         private async void TopStop_Click(object sender, RoutedEventArgs e)
         {
             var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
             if (!selected.Any()) return;
 
             var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "Annulla");
+            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "AnNulla");
             if (!ok) return;
 
             foreach (var d in selected)
             {
                 await new WslEngine().TerminateDistro(d.Name);
+                ShowToast($"Distro {d.Name} terminata", TimeSpan.FromSeconds(3));
             }
             await LoadDistros();
         }
@@ -321,6 +322,50 @@ namespace Bridge
 
             var result = await dlg.ShowAsync();
             return result == ContentDialogResult.Primary;
+        }
+
+        // Simple in-app toast messages (transient)
+        private void ShowToast(string text, TimeSpan duration)
+        {
+            try
+            {
+                var dq = Windows.System.DispatcherQueue.GetForCurrentThread();
+                dq.TryEnqueue(() =>
+                {
+                    // Find the ToastPanel at runtime instead of relying on the generated field
+                    var root = this.Content as FrameworkElement;
+                    var toastPanel = root?.FindName("ToastPanel") as StackPanel;
+                    if (toastPanel == null) return;
+
+                    var tb = new Border
+                    {
+                        Background = new SolidColorBrush(Microsoft.UI.Colors.DimGray),
+                        CornerRadius = new CornerRadius(6),
+                        Padding = new Thickness(10),
+                        Margin = new Thickness(0, 0, 0, 8),
+                        Child = new TextBlock { Text = text, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) }
+                    };
+
+                    toastPanel.Children.Insert(0, tb);
+
+                    // remove after delay on background thread, then marshal removal to UI thread
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(duration);
+                        dq.TryEnqueue(() =>
+                        {
+                            if (toastPanel.Children.Contains(tb))
+                            {
+                                toastPanel.Children.Remove(tb);
+                            }
+                        });
+                    });
+                });
+            }
+            catch
+            {
+                // ignore errors in toast display
+            }
         }
     }
 }

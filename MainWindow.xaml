@@ -27,7 +27,6 @@
                 <AppBarButton Icon="Delete" Label="Delete" Foreground="#ff5555" Click="TopDelete_Click"/>
                 <AppBarSeparator/>
                 <AppBarButton Icon="Play" Foreground="#4e94ff" Click="TopPlay_Click"/>
-                <AppBarButton Icon="Pause" Foreground="#4e94ff" Click="TopPause_Click"/>
                 <AppBarButton Icon="Stop" Foreground="#4e94ff" Click="TopStop_Click"/>
             </CommandBar>
         </StackPanel>
@@ -71,6 +70,7 @@
                             <Button Content="" FontFamily="Segoe Fluent Icons" Background="Transparent" BorderThickness="0" Click="Terminal_Click" ToolTipService.ToolTip="Open Terminal"/>
                             <Button Content="" FontFamily="Segoe Fluent Icons" Background="Transparent" BorderThickness="0" Foreground="#4e94ff" Click="Stop_Click"/>
                             <Button Content="" FontFamily="Segoe Fluent Icons" Background="Transparent" BorderThickness="0" Foreground="#ff5555" Click="Delete_Click"/>
+                            <ProgressRing Width="20" Height="20" IsActive="{x:Bind IsBusy, Mode=OneWay}" Visibility="{x:Bind BusyVisibility, Mode=OneWay}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>
@@ -78,6 +78,9 @@
             </ListView>
 
             <ProgressRing x:Name="LoadingRing" IsActive="False" Visibility="Collapsed" Width="40" Height="40" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,16,0"/>
+
+            <!-- In-app toast container (stack of transient messages) -->
+            <StackPanel x:Name="ToastPanel" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="16" IsHitTestVisible="False" />
         </Grid>
     </Grid>
 

@@ -102,14 +102,32 @@ namespace Bridge
          * @param distroName The name of the WSL distribution to export.
          * @param filePath The path where the exported tar file will be saved.
          */
-        public void ExportDistro(string distroName, string filePath)
+        public async Task ExportDistro(string distroName, string filePath)
         {
-            Process.Start(new ProcessStartInfo
+            ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
                 Arguments = $"--export {distroName} \"{filePath}\"",
                 CreateNoWindow = false // Show window cause export can process for minutes
-            });
+            };
+            using var process = Process.Start(psi);
+            await process.WaitForExitAsync();
+        }
+
+        /**
+         * Unregisters (deletes) the specified WSL distribution.
+         * It executes the "wsl.exe --unregister <distroName>" command.
+         */
+        public async Task UnregisterDistro(string distroName)
+        {
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "wsl.exe",
+                Arguments = $"--unregister {distroName}",
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            await process.WaitForExitAsync();
         }
     }
 }
