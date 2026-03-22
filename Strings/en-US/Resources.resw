@@ -18,10 +18,154 @@
   <data name="Import_Error" xml:space="preserve">
     <value>Error importing {0}: {1}</value>
   </data>
+  <data name="Tray_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Tray_Show" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="Tray_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Tray_About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>About Bridge</value>
+  </data>
+  <data name="About_Content" xml:space="preserve">
+    <value>Bridge - native WSL manager</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>Version: {0}</value>
+  </data>
+  <data name="About_Build" xml:space="preserve">
+    <value>Build: {0}</value>
+  </data>
+  <data name="About_Repo" xml:space="preserve">
+    <value>Repository: https://github.com/Forz70043/Bridge</value>
+  </data>
+  <data name="About_ProducerLabel" xml:space="preserve">
+    <value>Produced by</value>
+  </data>
+  <data name="About_GitHubLabel" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="About_LinkedInLabel" xml:space="preserve">
+    <value>LinkedIn</value>
+  </data>
+  <data name="About_EmailLabel" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="About_OS" xml:space="preserve">
+    <value>OS: {0}</value>
+  </data>
+  <data name="About_Runtime" xml:space="preserve">
+    <value>Runtime: {0}</value>
+  </data>
+  <data name="About_Arch" xml:space="preserve">
+    <value>Architecture: {0}</value>
+  </data>
+  <data name="Settings_DefaultDir_Label" xml:space="preserve">
+    <value>Start directory</value>
+  </data>
+  <data name="Settings_DefaultDir_Placeholder" xml:space="preserve">
+    <value>e.g. /home/user</value>
+  </data>
+  <data name="Settings_DefaultUser_Label" xml:space="preserve">
+    <value>Default user</value>
+  </data>
+  <data name="Settings_DefaultUser_Placeholder" xml:space="preserve">
+    <value>e.g. root</value>
+  </data>
+  <data name="Settings_Hints_Label" xml:space="preserve">
+    <value>Tips:</value>
+  </data>
+  <data name="Settings_Hint1" xml:space="preserve">
+    <value>- The directory where the distro shell opens (e.g. /home/user)</value>
+  </data>
+  <data name="Settings_DistroTitle" xml:space="preserve">
+    <value>Settings - {0}</value>
+  </data>
+  <data name="Settings_Saved" xml:space="preserve">
+    <value>Settings saved for {0}</value>
+  </data>
+  <data name="Settings_Global_Placeholder" xml:space="preserve">
+    <value>Currently not configured</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Global Settings</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
   <data name="Import_Completed" xml:space="preserve">
     <value>Import completed: {0}</value>
   </data>
   <data name="Select_AtLeastOne" xml:space="preserve">
     <value>Select at least one distro to export</value>
+  </data>
+  <data name="Picker_Unavailable" xml:space="preserve">
+    <value>File picker not available</value>
+  </data>
+  <data name="Invalid_Folder" xml:space="preserve">
+    <value>Invalid folder selected</value>
+  </data>
+  <data name="Import_NameLabel" xml:space="preserve">
+    <value>New distro name:</value>
+  </data>
+  <data name="Import_FolderLabel" xml:space="preserve">
+    <value>Installation folder:</value>
+  </data>
+  <data name="Import_DialogTitle" xml:space="preserve">
+    <value>Import distro</value>
+  </data>
+  <data name="Import_Action" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Import_InvalidFile" xml:space="preserve">
+    <value>Invalid or missing .tar file</value>
+  </data>
+  <data name="Import_InvalidName" xml:space="preserve">
+    <value>Invalid distro name</value>
+  </data>
+  <data name="Import_InvalidFolder" xml:space="preserve">
+    <value>Invalid installation folder</value>
+  </data>
+  <data name="Confirm_Delete_Title" xml:space="preserve">
+    <value>Unregister distribution</value>
+  </data>
+  <data name="Confirm_Delete_Single" xml:space="preserve">
+    <value>Are you sure you want to remove &#39;{0}&#39;? This action is irreversible.</value>
+  </data>
+  <data name="Confirm_Delete_Multi" xml:space="preserve">
+    <value>Are you sure you want to remove: {0}? This action is irreversible.</value>
+  </data>
+  <data name="Action_Unregister" xml:space="preserve">
+    <value>Unregister</value>
+  </data>
+  <data name="Confirm_Stop_Title" xml:space="preserve">
+    <value>Terminate distributions</value>
+  </data>
+  <data name="Confirm_Stop_Multi" xml:space="preserve">
+    <value>Are you sure you want to terminate: {0}?</value>
+  </data>
+  <data name="Action_Terminate" xml:space="preserve">
+    <value>Terminate</value>
+  </data>
+  <data name="Distro_Terminated" xml:space="preserve">
+    <value>Distro {0} terminated</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>© 2024 Alfonso Pisicchio</value>
   </data>
 </root>

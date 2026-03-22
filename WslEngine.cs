@@ -23,38 +23,56 @@ namespace Bridge
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                Arguments = "-l -v",
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 StandardOutputEncoding = Encoding.Unicode
             };
+            psi.ArgumentList.Add("-l");
+            psi.ArgumentList.Add("-v");
 
-            using var process = Process.Start(psi);
-            string output = await process.StandardOutput.ReadToEndAsync();
-
-            // Group the output into lines and skip the first line (header)
-            var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Skip(1);
-
-            foreach (var line in lines)
+            var process = Process.Start(psi);
+            if (process == null)
             {
-                // Clean up the line and split it into parts
-                var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                throw new InvalidOperationException("Failed to start wsl.exe to list WSL distributions. Ensure WSL is installed and accessible.");
+            }
 
-                if (parts.Length >= 3)
+            using (process)
+            {
+                string output = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                // Group the output into lines and skip the first line (header)
+                var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Skip(1);
+
+                foreach (var line in lines)
                 {
-                    bool isDefault = line.Trim().StartsWith("*");
+                    // Clean up the line and split it into parts
+                    var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-                    // If the line starts with "*", it indicates the default distribution, so we need to adjust the indices accordingly
-                    int offset = isDefault ? 1 : 0;
-
-                    distros.Add(new WslDistro
+                    if (parts.Length >= 3)
                     {
-                        IsDefault = isDefault,
-                        Name = parts[0 + offset],
-                        Status = parts[1 + offset],
-                        Version = parts[2 + offset]
-                    });
+                        bool isDefault = line.Trim().StartsWith("*");
+
+                        // If the line starts with "*", skip the leading "*" token
+                        int offset = isDefault ? 1 : 0;
+
+                        // Need at least offset + name + status + version tokens
+                        if (parts.Length < offset + 3) continue;
+
+                        // Version is the last token, status is second-to-last; name may contain spaces
+                        string version = parts[parts.Length - 1];
+                        string status = parts[parts.Length - 2];
+                        string name = string.Join(" ", parts, offset, parts.Length - 2 - offset);
+
+                        distros.Add(new WslDistro
+                        {
+                            IsDefault = isDefault,
+                            Name = name,
+                            Status = status,
+                            Version = version
+                        });
+                    }
                 }
             }
 
@@ -69,20 +87,30 @@ namespace Bridge
          */
         public void StartTerminal(string distroName, string? startDir = null, string? user = null)
         {
-            // Build wsl arguments: distro, optional user, optional start directory
-            var args = new List<string>();
-            args.Add($"-d \"{distroName}\"");
-            if (!string.IsNullOrWhiteSpace(user)) args.Add($"-u \"{user}\"");
-            if (!string.IsNullOrWhiteSpace(startDir)) args.Add($"--cd \"{startDir}\"");
-
-            var wslArgs = string.Join(" ", args);
-
+            // Build wsl arguments using ArgumentList to avoid fragile manual quoting and injection issues
             var psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = $"/c start wsl {wslArgs}",
                 CreateNoWindow = true
             };
+
+            psi.ArgumentList.Add("/c");
+            psi.ArgumentList.Add("start");
+            psi.ArgumentList.Add("wsl");
+            psi.ArgumentList.Add("-d");
+            psi.ArgumentList.Add(distroName);
+
+            if (!string.IsNullOrWhiteSpace(user))
+            {
+                psi.ArgumentList.Add("-u");
+                psi.ArgumentList.Add(user);
+            }
+
+            if (!string.IsNullOrWhiteSpace(startDir))
+            {
+                psi.ArgumentList.Add("--cd");
+                psi.ArgumentList.Add(startDir);
+            }
 
             Process.Start(psi);
         }
@@ -98,17 +126,22 @@ namespace Bridge
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                Arguments = $"--terminate {distroName}",
                 CreateNoWindow = true
             };
+            psi.ArgumentList.Add("--terminate");
+            psi.ArgumentList.Add(distroName);
             using var process = Process.Start(psi);
+            if (process == null)
+            {
+                throw new InvalidOperationException("Failed to start wsl.exe to terminate the specified WSL distribution.");
+            }
             await process.WaitForExitAsync();
         }
 
         /**
          * Exports the specified WSL distribution to a tar file.
          * It executes the "wsl.exe --export <distroName> <filePath>" command.
-         * 
+         *
          * @param distroName The name of the WSL distribution to export.
          * @param filePath The path where the exported tar file will be saved.
          */
@@ -117,20 +150,22 @@ namespace Bridge
             var psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                Arguments = $"--export {distroName} \"{filePath}\"",
-                CreateNoWindow = false,
+                CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.Unicode
             };
+            psi.ArgumentList.Add("--export");
+            psi.ArgumentList.Add(distroName);
+            psi.ArgumentList.Add(filePath);
 
             using var process = Process.Start(psi);
             var output = new StringBuilder();
 
             if (process == null)
             {
-                throw new InvalidOperationException("Failed to start wsl.exe");
+                throw new InvalidOperationException("Failed to start wsl.exe to export the specified WSL distribution.");
             }
 
             var outTask = process.StandardOutput.ReadToEndAsync();
@@ -160,20 +195,23 @@ namespace Bridge
             var psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                Arguments = $"--import {distroName} \"{installLocation}\" \"{filePath}\"",
-                CreateNoWindow = false,
+                CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.Unicode
             };
+            psi.ArgumentList.Add("--import");
+            psi.ArgumentList.Add(distroName);
+            psi.ArgumentList.Add(installLocation);
+            psi.ArgumentList.Add(filePath);
 
             using var process = Process.Start(psi);
             var output = new StringBuilder();
 
             if (process == null)
             {
-                throw new InvalidOperationException("Failed to start wsl.exe");
+                throw new InvalidOperationException("Failed to start wsl.exe to import the specified WSL distribution.");
             }
 
             var outTask = process.StandardOutput.ReadToEndAsync();
@@ -196,10 +234,15 @@ namespace Bridge
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                Arguments = $"--unregister {distroName}",
                 CreateNoWindow = true
             };
+            psi.ArgumentList.Add("--unregister");
+            psi.ArgumentList.Add(distroName);
             using var process = Process.Start(psi);
+            if (process == null)
+            {
+                throw new InvalidOperationException("Failed to start wsl.exe to unregister the specified WSL distribution.");
+            }
             await process.WaitForExitAsync();
         }
     }

@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="TestToast_Message" xml:space="preserve">
-    <value>Notificación de prueba: operación completada</value>
+    <value>NotificaciÃ³n de prueba: operaciÃ³n completada</value>
   </data>
   <data name="Export_Completed" xml:space="preserve">
-    <value>Exportación completada: {0}</value>
+    <value>ExportaciÃ³n completada: {0}</value>
   </data>
   <data name="Export_Error" xml:space="preserve">
     <value>Error al exportar {0}: {1}</value>
@@ -18,10 +18,154 @@
   <data name="Import_Error" xml:space="preserve">
     <value>Error al importar {0}: {1}</value>
   </data>
-  <data name="Import_Completed" xml:space="preserve">
-    <value>Importación completada: {0}</value>
+  <data name="Tray_Open" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="Tray_Show" xml:space="preserve">
+    <value>Mostrar</value>
+  </data>
+  <data name="Tray_Settings" xml:space="preserve">
+    <value>ConfiguraciÃ³n</value>
+  </data>
+  <data name="Tray_About" xml:space="preserve">
+    <value>Acerca de</value>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>Salir</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>Acerca de Bridge</value>
+  </data>
+  <data name="About_Content" xml:space="preserve">
+    <value>Bridge - administrador WSL nativo</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>VersiÃ³n: {0}</value>
+  </data>
+  <data name="About_Build" xml:space="preserve">
+    <value>CompilaciÃ³n: {0}</value>
+  </data>
+  <data name="About_Repo" xml:space="preserve">
+    <value>Repositorio: https://github.com/Forz70043/Bridge</value>
+  </data>
+  <data name="About_ProducerLabel" xml:space="preserve">
+    <value>Producido por</value>
+  </data>
+  <data name="About_GitHubLabel" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="About_LinkedInLabel" xml:space="preserve">
+    <value>LinkedIn</value>
+  </data>
+  <data name="About_EmailLabel" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="About_OS" xml:space="preserve">
+    <value>SO: {0}</value>
+  </data>
+  <data name="About_Runtime" xml:space="preserve">
+    <value>Runtime: {0}</value>
+  </data>
+  <data name="About_Arch" xml:space="preserve">
+    <value>Arquitectura: {0}</value>
+  </data>
+  <data name="Settings_DefaultDir_Label" xml:space="preserve">
+    <value>Directorio de inicio</value>
+  </data>
+  <data name="Settings_DefaultDir_Placeholder" xml:space="preserve">
+    <value>ej. /home/usuario</value>
+  </data>
+  <data name="Settings_DefaultUser_Label" xml:space="preserve">
+    <value>Usuario predeterminado</value>
+  </data>
+  <data name="Settings_DefaultUser_Placeholder" xml:space="preserve">
+    <value>ej. root</value>
+  </data>
+  <data name="Settings_Hints_Label" xml:space="preserve">
+    <value>Consejos:</value>
+  </data>
+  <data name="Settings_Hint1" xml:space="preserve">
+    <value>- Directorio donde se abre la shell de la distro (ej. /home/usuario)</value>
+  </data>
+  <data name="Settings_DistroTitle" xml:space="preserve">
+    <value>ConfiguraciÃ³n - {0}</value>
+  </data>
+  <data name="Settings_Saved" xml:space="preserve">
+    <value>ConfiguraciÃ³n guardada para {0}</value>
+  </data>
+  <data name="Settings_Global_Placeholder" xml:space="preserve">
+    <value>No configurado</value>
   </data>
   <data name="Select_AtLeastOne" xml:space="preserve">
-    <value>Selecciona al menos una distro para exportar</value>
+    <value>Seleccione al menos una distro para exportar</value>
+  </data>
+  <data name="Picker_Unavailable" xml:space="preserve">
+    <value>Selector de archivos no disponible</value>
+  </data>
+  <data name="Invalid_Folder" xml:space="preserve">
+    <value>Carpeta no vÃ¡lida</value>
+  </data>
+  <data name="Import_NameLabel" xml:space="preserve">
+    <value>Nombre de la nueva distro:</value>
+  </data>
+  <data name="Import_FolderLabel" xml:space="preserve">
+    <value>Carpeta de instalaciÃ³n:</value>
+  </data>
+  <data name="Import_DialogTitle" xml:space="preserve">
+    <value>Importar distro</value>
+  </data>
+  <data name="Import_Action" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="Import_InvalidFile" xml:space="preserve">
+    <value>Archivo .tar invÃ¡lido o inexistente</value>
+  </data>
+  <data name="Import_InvalidName" xml:space="preserve">
+    <value>Nombre de distro invÃ¡lido</value>
+  </data>
+  <data name="Import_InvalidFolder" xml:space="preserve">
+    <value>Carpeta de instalaciÃ³n invÃ¡lida</value>
+  </data>
+  <data name="Confirm_Delete_Title" xml:space="preserve">
+    <value>Eliminar distribuciÃ³n</value>
+  </data>
+  <data name="Confirm_Delete_Single" xml:space="preserve">
+    <value>Â¿Seguro que desea eliminar '{0}'? Esta acciÃ³n es irreversible.</value>
+  </data>
+  <data name="Confirm_Delete_Multi" xml:space="preserve">
+    <value>Â¿Seguro que desea eliminar: {0}? Esta acciÃ³n es irreversible.</value>
+  </data>
+  <data name="Action_Unregister" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Confirm_Stop_Title" xml:space="preserve">
+    <value>Terminar distribuciones</value>
+  </data>
+  <data name="Confirm_Stop_Multi" xml:space="preserve">
+    <value>Â¿Seguro que desea terminar: {0}?</value>
+  </data>
+  <data name="Action_Terminate" xml:space="preserve">
+    <value>Terminar</value>
+  </data>
+  <data name="Distro_Terminated" xml:space="preserve">
+    <value>Distro {0} terminada</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>Â© 2024 Alfonso Pisicchio</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>ConfiguraciÃ³n global</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Import_Completed" xml:space="preserve">
+    <value>ImportaciÃ³n completada: {0}</value>
   </data>
 </root>

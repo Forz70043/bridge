@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
@@ -10,6 +10,7 @@
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
+    <!-- Tray icon implemented via Win32 Shell_NotifyIcon; do not enable Windows Forms -->
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <!-- Disable implicit PRIResource items so we can include Strings\**\*.resw explicitly -->
@@ -23,6 +24,10 @@
     <Content Include="Assets\Square44x44Logo.scale-200.png" />
     <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <Content Include="Assets\linux_image_transparent.jpg" />
+    <Content Include="Assets\Icons\app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -46,9 +51,17 @@
     <PRIResource Include="Strings\**\*.resw" />
   </ItemGroup>
   <ItemGroup>
+    <Content Remove="Assets\Icons\.gitkeep" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="EO.WebBrowser" Version="26.1.7" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Use ICO generated from linux_image_transparent.jpg for ApplicationIcon -->
+  <ItemGroup>
   </ItemGroup>
 
   <!--
@@ -66,5 +79,7 @@
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
+    <!-- Application icon: Assets\Icons\app.ico is generated from Assets\linux_image_transparent.jpg (see repository documentation for generation steps) -->
   </PropertyGroup>
 </Project>
