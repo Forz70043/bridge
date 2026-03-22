@@ -12,6 +12,8 @@
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <!-- Disable implicit PRIResource items so we can include Strings\**\*.resw explicitly -->
+    <EnableDefaultPriItems>false</EnableDefaultPriItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +36,14 @@
   -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".github\copilot-instructions.md" />
+    <None Include=".github\workflows\validate-resw.yml" />
+  </ItemGroup>
+  <!-- Include RESW localization resources automatically -->
+  <ItemGroup>
+    <PRIResource Include="Strings\**\*.resw" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="EO.WebBrowser" Version="26.1.7" />

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="TestToast_Message" xml:space="preserve">
+    <value>Test notification: operation completed</value>
+  </data>
+  <data name="Export_Completed" xml:space="preserve">
+    <value>Export completed: {0}</value>
+  </data>
+  <data name="Export_Error" xml:space="preserve">
+    <value>Error exporting {0}: {1}</value>
+  </data>
+  <data name="Distro_Removed" xml:space="preserve">
+    <value>Distro {0} removed</value>
+  </data>
+  <data name="Import_InProgress" xml:space="preserve">
+    <value>Import {0} in progress...</value>
+  </data>
+  <data name="Import_Error" xml:space="preserve">
+    <value>Error importing {0}: {1}</value>
+  </data>
+  <data name="Import_Completed" xml:space="preserve">
+    <value>Import completed: {0}</value>
+  </data>
+  <data name="Select_AtLeastOne" xml:space="preserve">
+    <value>Select at least one distro to export</value>
+  </data>
+</root>

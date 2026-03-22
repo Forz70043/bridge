@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.IO;
 
 namespace Bridge
 {
@@ -66,15 +67,24 @@ namespace Bridge
          * 
          * @param distroName The name of the WSL distribution to start.
          */
-        public void StartTerminal(string distroName)
+        public void StartTerminal(string distroName, string? startDir = null, string? user = null)
         {
-            // Usa 'wt.exe' (Windows Terminal) if present, otherwise 'wsl.exe'
-            Process.Start(new ProcessStartInfo
+            // Build wsl arguments: distro, optional user, optional start directory
+            var args = new List<string>();
+            args.Add($"-d \"{distroName}\"");
+            if (!string.IsNullOrWhiteSpace(user)) args.Add($"-u \"{user}\"");
+            if (!string.IsNullOrWhiteSpace(startDir)) args.Add($"--cd \"{startDir}\"");
+
+            var wslArgs = string.Join(" ", args);
+
+            var psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = $"/c start wsl -d {distroName}",
+                Arguments = $"/c start wsl {wslArgs}",
                 CreateNoWindow = true
-            });
+            };
+
+            Process.Start(psi);
         }
 
         /**
@@ -102,16 +112,79 @@ namespace Bridge
          * @param distroName The name of the WSL distribution to export.
          * @param filePath The path where the exported tar file will be saved.
          */
-        public async Task ExportDistro(string distroName, string filePath)
+        public async Task<string> ExportDistro(string distroName, string filePath)
         {
-            ProcessStartInfo psi = new ProcessStartInfo
+            var psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
                 Arguments = $"--export {distroName} \"{filePath}\"",
-                CreateNoWindow = false // Show window cause export can process for minutes
+                CreateNoWindow = false,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.Unicode
             };
+
             using var process = Process.Start(psi);
+            var output = new StringBuilder();
+
+            if (process == null)
+            {
+                throw new InvalidOperationException("Failed to start wsl.exe");
+            }
+
+            var outTask = process.StandardOutput.ReadToEndAsync();
+            var errTask = process.StandardError.ReadToEndAsync();
+
             await process.WaitForExitAsync();
+
+            output.AppendLine(await outTask);
+            output.AppendLine(await errTask);
+
+            return output.ToString();
+        }
+
+        /**
+         * Imports a distro from a tar file.
+         * It executes "wsl.exe --import <name> <installLocation> <tarPath>"
+         * 
+         * @param distroName The name to assign to the imported distribution.
+         * @param installLocation The folder where WSL will store the distro files.
+         * @param filePath The path to the .tar file to import.
+         */
+        public async Task<string> ImportDistro(string distroName, string installLocation, string filePath)
+        {
+            // ensure folder exists
+            Directory.CreateDirectory(installLocation);
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "wsl.exe",
+                Arguments = $"--import {distroName} \"{installLocation}\" \"{filePath}\"",
+                CreateNoWindow = false,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.Unicode
+            };
+
+            using var process = Process.Start(psi);
+            var output = new StringBuilder();
+
+            if (process == null)
+            {
+                throw new InvalidOperationException("Failed to start wsl.exe");
+            }
+
+            var outTask = process.StandardOutput.ReadToEndAsync();
+            var errTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+
+            output.AppendLine(await outTask);
+            output.AppendLine(await errTask);
+
+            return output.ToString();
         }
 
         /**
