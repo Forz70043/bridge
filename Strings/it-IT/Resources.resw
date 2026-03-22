@@ -153,6 +153,9 @@
   <data name="About_Copyright" xml:space="preserve">
     <value>Â© 2024 Alfonso Pisicchio</value>
   </data>
+  <data name="Settings_Global_Placeholder" xml:space="preserve">
+    <value>Non configurato</value>
+  </data>
   <data name="Settings_Title" xml:space="preserve">
     <value>Impostazioni globali</value>
   </data>
