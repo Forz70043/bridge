@@ -82,3 +82,19 @@ Open a Pull Request.
 Distributed under the MIT License. See LICENSE for more information.
 
 Created with ❤️ by Forz70043
+
+## 🌐 Localization (.resw)
+
+Bridge uses `.resw` files for translations (Windows-style). Resource files live under `Strings\<culture>\Resources.resw` (for example `Strings\it-IT\Resources.resw`).
+
+How to update / add strings:
+- Open the file `Strings\<culture>\Resources.resw` for the target language.
+- Add the new key `<data name="My_Key">` with the value `<value>...</value>` in every supported language folder.
+- Keep keys synchronized across all `Strings` folders. Do not leave missing keys — a missing key will be displayed as the key name at runtime.
+- Currently supported languages: `it-IT`, `en-US`, `es-ES`, `fr-FR`, `zh-CN`.
+- After updating `.resw` files, rebuild the project (F5). The `Bridge.csproj` is already configured to include `Strings\\**\\*.resw` automatically.
+
+Best practices:
+- Always use `Localizer.Get("Key")` or `Localizer.GetFormat("Key", args)` in code instead of hard-coded strings.
+- Add clear comments when a string requires formatting (e.g. `{0}`).
+- Build and verify the UI in the target languages after changes.
