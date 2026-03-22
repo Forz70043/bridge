@@ -9,10 +9,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using WinRT.Interop;
+using Windows.Storage.Pickers;
+using Windows.Storage;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using System.Text.Json;
+using System.Collections.Concurrent;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -45,6 +50,85 @@ namespace Bridge
             _ = LoadDistros(); // initial load
 
             this.Closed += MainWindow_Closed;
+        }
+
+        // Per-distro settings storage
+        private static readonly string SettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Bridge", "distro-settings.json");
+        private static readonly ConcurrentDictionary<string, DistroSettings> _settingsCache = new ConcurrentDictionary<string, DistroSettings>(StringComparer.OrdinalIgnoreCase);
+
+        private class DistroSettings
+        {
+            public string DefaultDir { get; set; } = string.Empty;
+            public string DefaultUser { get; set; } = string.Empty;
+        }
+
+        private DistroSettings LoadSettingsFor(string distroName)
+        {
+            try
+            {
+                if (_settingsCache.TryGetValue(distroName, out var cached)) return cached;
+                if (!File.Exists(SettingsPath)) return new DistroSettings();
+                var all = JsonSerializer.Deserialize<Dictionary<string, DistroSettings>>(File.ReadAllText(SettingsPath)) ?? new Dictionary<string, DistroSettings>(StringComparer.OrdinalIgnoreCase);
+                if (all.TryGetValue(distroName, out var s)) { _settingsCache[distroName] = s; return s; }
+                return new DistroSettings();
+            }
+            catch { return new DistroSettings(); }
+        }
+
+        private void SaveSettingsFor(string distroName, DistroSettings settings)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath) ?? Path.GetTempPath());
+                Dictionary<string, DistroSettings> all = new Dictionary<string, DistroSettings>(StringComparer.OrdinalIgnoreCase);
+                if (File.Exists(SettingsPath))
+                {
+                    all = JsonSerializer.Deserialize<Dictionary<string, DistroSettings>>(File.ReadAllText(SettingsPath)) ?? all;
+                }
+                all[distroName] = settings;
+                File.WriteAllText(SettingsPath, JsonSerializer.Serialize(all, new JsonSerializerOptions { WriteIndented = true }));
+                _settingsCache[distroName] = settings;
+            }
+            catch { }
+        }
+
+        // Handler for per-distro settings button
+        private async void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            var distro = (sender as Button).DataContext as WslDistro;
+            if (distro == null) return;
+
+            var current = LoadSettingsFor(distro.Name);
+
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = "Directory di avvio (Start directory):", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+            var dirBox = new TextBox { Text = string.IsNullOrEmpty(current.DefaultDir) ? "" : current.DefaultDir };
+            panel.Children.Add(dirBox);
+
+            panel.Children.Add(new TextBlock { Text = "Default user (es. root):", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
+            var userBox = new TextBox { Text = string.IsNullOrEmpty(current.DefaultUser) ? "" : current.DefaultUser };
+            panel.Children.Add(userBox);
+
+            panel.Children.Add(new TextBlock { Text = "Suggerimenti:", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = "- Directory dove aprire la shell della distro (es. /home/utente)", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            panel.Children.Add(new TextBlock { Text = "- Puoi impostare variabili d'ambiente (future feature)", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            var dlg = new ContentDialog
+            {
+                Title = $"Settings - {distro.Name}",
+                Content = panel,
+                PrimaryButtonText = "Salva",
+                CloseButtonText = "Annulla",
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+
+            current.DefaultDir = dirBox.Text.Trim();
+            current.DefaultUser = userBox.Text.Trim();
+            SaveSettingsFor(distro.Name, current);
+
+            ShowToast($"Settings salvati per {distro.Name}", TimeSpan.FromSeconds(3));
         }
 
         /**
@@ -177,7 +261,11 @@ namespace Bridge
         private void Start_Click(object sender, RoutedEventArgs e)
         {
             var distro = (sender as Button).DataContext as WslDistro;
-            new WslEngine().StartTerminal(distro.Name);
+            if (distro == null) return;
+            var settings = LoadSettingsFor(distro.Name);
+            var startDir = string.IsNullOrWhiteSpace(settings.DefaultDir) ? null : settings.DefaultDir;
+            var user = string.IsNullOrWhiteSpace(settings.DefaultUser) ? null : settings.DefaultUser;
+            new WslEngine().StartTerminal(distro.Name, startDir, user);
         }
 
         /**
@@ -200,7 +288,31 @@ namespace Bridge
         {
             var distro = (sender as Button).DataContext as WslDistro;
             // Qui potresti aggiungere una 'SaveFileDialog' per scegliere dove salvare il .tar
-            new WslEngine().ExportDistro(distro.Name, $"C:\\Backups\\{distro.Name}.tar");
+            if (distro == null) return;
+
+            // default folder under Documents\WSLBackups
+            var defaultFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "WSLBackups");
+            Directory.CreateDirectory(defaultFolder);
+            var filePath = Path.Combine(defaultFolder, $"{distro.Name}.tar");
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { distro.IsBusy = true; });
+                    await new WslEngine().ExportDistro(distro.Name, filePath);
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => ShowToast(Localizer.GetFormat("Export_Completed", filePath), TimeSpan.FromSeconds(4)));
+                }
+                catch (Exception ex)
+                {
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => ShowToast(Localizer.GetFormat("Export_Error", distro.Name, ex.Message), TimeSpan.FromSeconds(5)));
+                }
+                finally
+                {
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { distro.IsBusy = false; });
+                    await LoadDistros();
+                }
+            });
         }
 
         // Added missing event handler referenced from XAML: Terminal_Click
@@ -209,10 +321,181 @@ namespace Bridge
             var distro = (sender as Button).DataContext as WslDistro;
             if (distro != null)
             {
-                new WslEngine().StartTerminal(distro.Name);
+                var settings = LoadSettingsFor(distro.Name);
+                var startDir = string.IsNullOrWhiteSpace(settings.DefaultDir) ? null : settings.DefaultDir;
+                var user = string.IsNullOrWhiteSpace(settings.DefaultUser) ? null : settings.DefaultUser;
+                new WslEngine().StartTerminal(distro.Name, startDir, user);
 
                 // Give WSL a short moment to change state, then refresh the list
                 await Task.Delay(800);
+                await LoadDistros();
+            }
+        }
+
+        // New: Export selected distros (top command)
+        private async void TopExport_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
+            if (!selected.Any())
+            {
+                ShowToast("Seleziona almeno una distro da esportare", TimeSpan.FromSeconds(3));
+                return;
+            }
+
+            // Use FolderPicker for better UX
+            var picker = new Windows.Storage.Pickers.FolderPicker();
+            var hwnd = WindowNative.GetWindowHandle(this);
+            InitializeWithWindow.Initialize(picker, hwnd);
+            // FolderPicker requires at least one FileTypeFilter item
+            picker.FileTypeFilter.Add("*");
+
+            StorageFolder picked = null;
+            try
+            {
+                picked = await picker.PickSingleFolderAsync();
+            }
+            catch
+            {
+                ShowToast("Folder picker non disponibile", TimeSpan.FromSeconds(3));
+                return;
+            }
+
+            if (picked == null)
+            {
+                // user cancelled
+                return;
+            }
+
+            var folderPath = picked.Path;
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                ShowToast("Cartella non valida", TimeSpan.FromSeconds(3));
+                return;
+            }
+
+            Directory.CreateDirectory(folderPath);
+
+            try
+            {
+                TopOperationRing.IsActive = true;
+                TopOperationRing.Visibility = Visibility.Visible;
+                TopOperationText.Text = "Export in corso...";
+                TopOperationText.Visibility = Visibility.Visible;
+
+                foreach (var d in selected)
+                {
+                    d.IsBusy = true;
+                    var filePath = Path.Combine(folderPath, $"{d.Name}.tar");
+                    try
+                    {
+                        var output = await new WslEngine().ExportDistro(d.Name, filePath);
+                        ShowToast($"Export completato: {d.Name}", TimeSpan.FromSeconds(3));
+                        System.Diagnostics.Debug.WriteLine(output);
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowToast($"Errore export {d.Name}: {ex.Message}", TimeSpan.FromSeconds(5));
+                    }
+                    finally
+                    {
+                        d.IsBusy = false;
+                    }
+                }
+            }
+            finally
+            {
+                TopOperationRing.IsActive = false;
+                TopOperationRing.Visibility = Visibility.Collapsed;
+                TopOperationText.Visibility = Visibility.Collapsed;
+                await LoadDistros();
+            }
+        }
+
+        // New: Import a distro (top command)
+        private async void TopImport_Click(object sender, RoutedEventArgs e)
+        {
+            // Use FileOpenPicker to select a .tar file, then ask for name and install folder
+            var picker = new FileOpenPicker();
+            // WinUI3 requires initializing picker with window handle
+            var hwnd = WindowNative.GetWindowHandle(this);
+            InitializeWithWindow.Initialize(picker, hwnd);
+            picker.FileTypeFilter.Add(".tar");
+
+            StorageFile file = null;
+            try
+            {
+                file = await picker.PickSingleFileAsync();
+            }
+            catch
+            {
+                ShowToast("Picker non disponibile", TimeSpan.FromSeconds(3));
+                return;
+            }
+
+            if (file == null)
+            {
+                // user cancelled
+                return;
+            }
+
+            // Ask for distro name and install folder
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = "Nome della nuova distro:", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+            var nameBox = new TextBox { Text = Path.GetFileNameWithoutExtension(file.Name) };
+            panel.Children.Add(nameBox);
+
+            panel.Children.Add(new TextBlock { Text = "Cartella di installazione:", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
+            var installBox = new TextBox { Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WSL", nameBox.Text) };
+            panel.Children.Add(installBox);
+
+            var dlg = new ContentDialog
+            {
+                Title = "Import distro",
+                Content = panel,
+                PrimaryButtonText = "Importa",
+                CloseButtonText = "Annulla",
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+
+            var tarPath = file.Path;
+            var name = nameBox.Text.Trim();
+            var installFolder = installBox.Text.Trim();
+
+            if (string.IsNullOrEmpty(tarPath) || !File.Exists(tarPath))
+            {
+                ShowToast("File .tar non valido o inesistente", TimeSpan.FromSeconds(4));
+                return;
+            }
+            if (string.IsNullOrEmpty(name))
+            {
+                ShowToast("Nome distro non valido", TimeSpan.FromSeconds(3));
+                return;
+            }
+            if (string.IsNullOrEmpty(installFolder)) { ShowToast("Cartella di installazione non valida", TimeSpan.FromSeconds(3)); return; }
+            Directory.CreateDirectory(installFolder);
+
+            try
+            {
+                TopOperationRing.IsActive = true;
+                TopOperationRing.Visibility = Visibility.Visible;
+                TopOperationText.Text = $"Import {name} in corso...";
+                TopOperationText.Visibility = Visibility.Visible;
+
+                var output = await new WslEngine().ImportDistro(name, installFolder, tarPath);
+                ShowToast($"Import completato: {name}", TimeSpan.FromSeconds(4));
+                System.Diagnostics.Debug.WriteLine(output);
+            }
+            catch (Exception ex)
+            {
+                ShowToast($"Errore import {name}: {ex.Message}", TimeSpan.FromSeconds(6));
+            }
+            finally
+            {
+                TopOperationRing.IsActive = false;
+                TopOperationRing.Visibility = Visibility.Collapsed;
+                TopOperationText.Visibility = Visibility.Collapsed;
                 await LoadDistros();
             }
         }
@@ -231,9 +514,21 @@ namespace Bridge
 
             var ok = await ConfirmAsync("Unregister distribution", $"Sei sicuro di voler rimuovere la distro '{distro.Name}'? Queste operazioni non sono reversibili.", "Unregister", "Annulla");
             if (!ok) return;
+            try
+            {
+                // show per-item spinner
+                distro.IsBusy = true;
 
-            // For safety, currently only log. Replace with actual unregister command when ready.
-            System.Diagnostics.Debug.WriteLine($"Delete confirmed for distro: {distro.Name}");
+                await new WslEngine().UnregisterDistro(distro.Name);
+                System.Diagnostics.Debug.WriteLine($"Delete completed for distro: {distro.Name}");
+                _map.Remove(distro.Name);
+                ShowToast($"Distro {distro.Name} rimossa", TimeSpan.FromSeconds(4));
+            }
+            finally
+            {
+                distro.IsBusy = false;
+                await LoadDistros();
+            }
         }
 
         /**
@@ -261,8 +556,13 @@ namespace Bridge
 
             foreach (var d in selected)
             {
-                System.Diagnostics.Debug.WriteLine($"Top delete confirmed for: {d.Name}");
+                await new WslEngine().UnregisterDistro(d.Name);
+                System.Diagnostics.Debug.WriteLine($"Top delete completed for: {d.Name}");
+                _map.Remove(d.Name);
+                ShowToast(Localizer.GetFormat("Distro_Removed", d.Name), TimeSpan.FromSeconds(4));
             }
+
+            await LoadDistros();
         }
 
         private void TopPlay_Click(object sender, RoutedEventArgs e)
@@ -274,40 +574,32 @@ namespace Bridge
             }
         }
 
-        private async void TopPause_Click(object sender, RoutedEventArgs e)
-        {
-            var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
-            if (!selected.Any()) return;
-
-            var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Pause distributions", $"Sei sicuro di voler sospendere (terminate) le distro: {names}?", "Sospendi", "Annulla");
-            if (!ok) return;
-
-            foreach (var d in selected)
-            {
-                // There is no direct 'suspend' in WSL; terminating will stop the distro's processes.
-                await new WslEngine().TerminateDistro(d.Name);
-            }
-            await LoadDistros();
-        }
-
         private async void TopStop_Click(object sender, RoutedEventArgs e)
         {
             var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
             if (!selected.Any()) return;
 
             var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "Annulla");
+            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "AnNulla");
             if (!ok) return;
 
             foreach (var d in selected)
             {
                 await new WslEngine().TerminateDistro(d.Name);
+                ShowToast($"Distro {d.Name} terminata", TimeSpan.FromSeconds(3));
             }
             await LoadDistros();
         }
 
         // Utility: show a confirmation dialog and return true if primary button pressed
+        // Test button for toast messages
+        private void TestToast_Click(object sender, RoutedEventArgs e)
+        {
+            ShowToast("Notifica di test: operazione completata", TimeSpan.FromSeconds(3));
+            ShowToast("Seconda notifica", TimeSpan.FromSeconds(4));
+            ShowToast("Terza notifica (più lunga)", TimeSpan.FromSeconds(6));
+        }
+
         private async Task<bool> ConfirmAsync(string title, string content, string primaryText = "OK", string secondaryText = "Cancel")
         {
             var dlg = new ContentDialog
@@ -321,6 +613,50 @@ namespace Bridge
 
             var result = await dlg.ShowAsync();
             return result == ContentDialogResult.Primary;
+        }
+
+        // Simple in-app toast messages (transient)
+        private void ShowToast(string text, TimeSpan duration)
+        {
+            try
+            {
+                var dq = Windows.System.DispatcherQueue.GetForCurrentThread();
+                dq.TryEnqueue(() =>
+                {
+                    // Find the ToastPanel at runtime instead of relying on the generated field
+                    var root = this.Content as FrameworkElement;
+                    var toastPanel = root?.FindName("ToastPanel") as StackPanel;
+                    if (toastPanel == null) return;
+
+                    var tb = new Border
+                    {
+                        Background = new SolidColorBrush(Microsoft.UI.Colors.DimGray),
+                        CornerRadius = new CornerRadius(6),
+                        Padding = new Thickness(10),
+                        Margin = new Thickness(0, 0, 0, 8),
+                        Child = new TextBlock { Text = text, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) }
+                    };
+
+                    toastPanel.Children.Insert(0, tb);
+
+                    // remove after delay on background thread, then marshal removal to UI thread
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(duration);
+                        dq.TryEnqueue(() =>
+                        {
+                            if (toastPanel.Children.Contains(tb))
+                            {
+                                toastPanel.Children.Remove(tb);
+                            }
+                        });
+                    });
+                });
+            }
+            catch
+            {
+                // ignore errors in toast display
+            }
         }
     }
 }
