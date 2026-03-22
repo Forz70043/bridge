@@ -94,7 +94,11 @@ namespace Bridge
 
                 if (notification == WM_LBUTTONDBLCLK)
                 {
-                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => this.Activate());
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                    {
+                        ShowWindow(_hWnd, SW_SHOW);
+                        this.Activate();
+                    });
                 }
                 else if (notification == WM_RBUTTONDOWN)
                 {
@@ -103,8 +107,15 @@ namespace Bridge
                 }
             }
 
-            // call original
-            return CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
+            // call original only if subclassing succeeded
+            if (_originalWndProc != IntPtr.Zero)
+            {
+                return CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
+            }
+
+            // If the original window procedure is not available, fall back to the default
+            // window procedure to ensure proper message handling.
+            return DefWindowProc(hWnd, msg, wParam, lParam);
         }
 
         private void ShowTrayContextMenu()
@@ -262,6 +273,7 @@ namespace Bridge
                                 if (bmp != null)
                                 {
                                     hIcon = bmp.GetHicon();
+                                    _trayIconHandle = hIcon;
                                 }
                             }
                         }
@@ -456,9 +468,12 @@ static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong)
 [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
 static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
+[DllImport("user32.dll", CharSet = CharSet.Auto)]
+static extern IntPtr DefWindowProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
+
 const int GWLP_WNDPROC = -4;
 
-[DllImport("user32.dll", SetLastError = true)]
+[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "AppendMenuW")]
 static extern bool AppendMenu(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string lpNewItem);
 
 [DllImport("user32.dll", SetLastError = true)]
@@ -469,6 +484,9 @@ const int SW_SHOW = 5;
 
 [DllImport("user32.dll", SetLastError = true)]
 static extern bool DestroyMenu(IntPtr hMenu);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool DestroyIcon(IntPtr hIcon);
 
 [DllImport("user32.dll", SetLastError = true)]
 static extern IntPtr CreatePopupMenu();
@@ -880,6 +898,16 @@ struct POINT { public int X; public int Y; }
                 }
             }
             catch { }
+
+            try
+            {
+                if (_trayIconHandle != IntPtr.Zero)
+                {
+                    DestroyIcon(_trayIconHandle);
+                    _trayIconHandle = IntPtr.Zero;
+                }
+            }
+            catch { }
         }
 
         // Top app bar actions (map to selected items)
@@ -918,7 +946,7 @@ struct POINT { public int X; public int Y; }
             if (!selected.Any()) return;
 
             var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "AnNulla");
+            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "Annulla");
             if (!ok) return;
 
             foreach (var d in selected)

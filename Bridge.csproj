@@ -80,6 +80,6 @@
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
     <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
-    <!-- Application icon: generate Assets\Icons\app.ico from Assets\linux_image_transparent.jpg using Tools\GenerateIcons.ps1 -->
+    <!-- Application icon: Assets\Icons\app.ico is generated from Assets\linux_image_transparent.jpg (see repository documentation for generation steps) -->
   </PropertyGroup>
 </Project>
