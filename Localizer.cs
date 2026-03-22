@@ -25,5 +25,10 @@ namespace Bridge
             var fmt = Get(key);
             try { return string.Format(fmt, args); } catch { return fmt; }
         }
+        
+        public static string GetOrDefault(string key, string def)
+        {
+            try { var s = _loader.GetString(key); return string.IsNullOrEmpty(s) ? def : s; } catch { return def; }
+        }
     }
 }

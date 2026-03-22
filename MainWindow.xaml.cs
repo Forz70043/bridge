@@ -18,17 +18,31 @@ using Windows.Foundation;
 using Windows.Foundation.Collections;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Text;
+using System.Drawing;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace Bridge
 {
+    delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
     /// <summary>
     /// An empty window that can be used on its own or navigated to within a Frame.
     /// </summary>
     public sealed partial class MainWindow : Window
     {
+        const int WM_CLOSE = 0x0010;
+        const int WM_SYSCOMMAND = 0x0112;
+        const int SC_CLOSE = 0xF060;
+        private IntPtr _trayIconHandle = IntPtr.Zero;
+        private IntPtr _hWnd = IntPtr.Zero;
+        private bool _trayInitialized = false;
+        private IntPtr _originalWndProc = IntPtr.Zero;
+        private WndProcDelegate? _wndProcDelegate;
         private System.Collections.ObjectModel.ObservableCollection<WslDistro> _visibleDistros = new System.Collections.ObjectModel.ObservableCollection<WslDistro>();
         private Dictionary<string, WslDistro> _map = new Dictionary<string, WslDistro>(StringComparer.OrdinalIgnoreCase);
         private Microsoft.UI.Xaml.DispatcherTimer _refreshTimer;
@@ -39,6 +53,7 @@ namespace Bridge
         {
             //InitializeComponent();
             this.InitializeComponent();
+            InitializeTrayIcon();
             // Start periodic refresh to detect external changes to WSL state
             _refreshTimer = new Microsoft.UI.Xaml.DispatcherTimer();
             _refreshTimer.Interval = TimeSpan.FromSeconds(5);
@@ -50,6 +65,259 @@ namespace Bridge
             _ = LoadDistros(); // initial load
 
             this.Closed += MainWindow_Closed;
+        }
+
+        private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            // Intercept window close requests (clicking X) and hide to tray instead of closing
+            if (msg == WM_CLOSE || (msg == WM_SYSCOMMAND && (uint)wParam.ToInt64() == SC_CLOSE))
+            {
+                try
+                {
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                    {
+                        // Hide the window so app keeps running in the tray (use Win32 show/hide)
+                        ShowWindow(_hWnd, SW_HIDE);
+                    });
+                }
+                catch { }
+
+                // Consume the message so the window is not destroyed
+                return IntPtr.Zero;
+            }
+            if (msg == WM_USER + 1)
+            {
+                var notification = (uint)lParam.ToInt32();
+                // 0x0203 = WM_LBUTTONDBLCLK, 0x0201 = WM_LBUTTONDOWN, 0x0204 = WM_RBUTTONDOWN
+                const uint WM_LBUTTONDBLCLK = 0x0203;
+                const uint WM_RBUTTONDOWN = 0x0204;
+
+                if (notification == WM_LBUTTONDBLCLK)
+                {
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                    {
+                        ShowWindow(_hWnd, SW_SHOW);
+                        this.Activate();
+                    });
+                }
+                else if (notification == WM_RBUTTONDOWN)
+                {
+                    // Show context menu near mouse
+                    ShowTrayContextMenu();
+                }
+            }
+
+            // call original only if subclassing succeeded
+            if (_originalWndProc != IntPtr.Zero)
+            {
+                return CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
+            }
+
+            // If the original window procedure is not available, fall back to the default
+            // window procedure to ensure proper message handling.
+            return DefWindowProc(hWnd, msg, wParam, lParam);
+        }
+
+        private void ShowTrayContextMenu()
+        {
+            try
+            {
+                // Use native Win32 popup menu (no WinForms dependency)
+                IntPtr hMenu = CreatePopupMenu();
+                if (hMenu == IntPtr.Zero) return;
+
+                const uint MF_STRING = 0x00000000;
+                const uint MF_SEPARATOR = 0x00000800;
+                const uint TPM_RETURNCMD = 0x0100;
+
+                const uint ID_ABOUT = 1000;
+                const uint ID_EXIT = 1001;
+
+                // Only About and Exit in tray menu (Open/Show/Settings removed per request)
+                AppendMenu(hMenu, MF_STRING, new UIntPtr(ID_ABOUT), Localizer.Get("Tray_About"));
+                AppendMenu(hMenu, MF_SEPARATOR, UIntPtr.Zero, string.Empty);
+                AppendMenu(hMenu, MF_STRING, new UIntPtr(ID_EXIT), Localizer.Get("Tray_Exit"));
+
+                if (GetCursorPos(out POINT pt))
+                {
+                    uint cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, pt.X, pt.Y, _hWnd, IntPtr.Zero);
+                    if (cmd != 0)
+                    {
+                        Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                        {
+                            switch (cmd)
+                            {
+                                case ID_ABOUT:
+                                    ShowAbout();
+                                    break;
+                                case ID_EXIT:
+                                    try
+                                    {
+                                        // remove tray icon first
+                                        if (_trayInitialized)
+                                        {
+                                            var nid = new NOTIFYICONDATA();
+                                            nid.cbSize = Marshal.SizeOf<NOTIFYICONDATA>();
+                                            nid.hWnd = _hWnd;
+                                            nid.uID = 100;
+                                            Shell_NotifyIcon(NIM_DELETE, ref nid);
+                                        }
+                                    }
+                                    catch { }
+
+                                    // exit application
+                                    Windows.ApplicationModel.Core.CoreApplication.Exit();
+                                    break;
+                            }
+                        });
+                    }
+                }
+
+                DestroyMenu(hMenu);
+            }
+            catch { }
+        }
+
+        private void ShowAbout()
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("About_Content"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+
+            var version = typeof(MainWindow).Assembly.GetName().Version?.ToString() ?? "n/a";
+            var asmPath = typeof(MainWindow).Assembly.Location;
+            string buildTime = "n/a";
+            try { if (!string.IsNullOrEmpty(asmPath) && File.Exists(asmPath)) buildTime = File.GetLastWriteTimeUtc(asmPath).ToString("u"); } catch { }
+
+            panel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Version", version), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Build", buildTime), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            // Technical info
+            var techPanel = new StackPanel { Margin = new Thickness(0,8,0,0) };
+            techPanel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_OS", Environment.OSVersion.VersionString), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            techPanel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Runtime", System.Environment.Version.ToString()), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            techPanel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Arch", RuntimeInformation.OSArchitecture.ToString()), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            panel.Children.Add(techPanel);
+
+            // Producer / Contact
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("About_ProducerLabel"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = "Alfonso Pisicchio", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            // Links: GitHub, LinkedIn, Email
+            var linksPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0,8,0,0) };
+
+            var githubBtn = new Button { Content = Localizer.GetOrDefault("About_GitHubLabel", "GitHub"), Padding = new Thickness(8,4,8,4) };
+            githubBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://github.com/Forz70043")); };
+            linksPanel.Children.Add(githubBtn);
+
+            var linkedinBtn = new Button { Content = Localizer.GetOrDefault("About_LinkedInLabel", "LinkedIn"), Padding = new Thickness(8,4,8,4) };
+            linkedinBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.linkedin.com/in/alfonsopisicchio/")); };
+            linksPanel.Children.Add(linkedinBtn);
+
+            var email = "info@pisicchio.dev";
+            var emailBtn = new Button { Content = Localizer.GetOrDefault("About_EmailLabel", "Email"), Padding = new Thickness(8,4,8,4) };
+            emailBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri($"mailto:{email}")); };
+            linksPanel.Children.Add(emailBtn);
+
+            panel.Children.Add(linksPanel);
+
+            // Copyright / repo
+            panel.Children.Add(new TextBlock { Text = Localizer.GetOrDefault("About_Repo", "Repository: https://github.com/Forz70043/Bridge"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = Localizer.GetOrDefault("About_Copyright", "© 2024 Alfonso Pisicchio"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            var dlg = new ContentDialog
+            {
+                Title = Localizer.Get("About_Title"),
+                Content = panel,
+                CloseButtonText = Localizer.Get("Close"),
+                XamlRoot = this.Content.XamlRoot
+            };
+            _ = dlg.ShowAsync();
+        }
+
+        private async Task OpenGlobalSettingsAsync()
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_Global_StartDir"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_Global_Placeholder"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            var dlg = new ContentDialog
+            {
+                Title = Localizer.Get("Settings_Title"),
+                Content = panel,
+                PrimaryButtonText = Localizer.Get("Save"),
+                CloseButtonText = Localizer.Get("Cancel"),
+                XamlRoot = this.Content.XamlRoot
+            };
+            await dlg.ShowAsync();
+        }
+
+        private void InitializeTrayIcon()
+        {
+            // Implement tray icon using Win32 NOTIFYICONDATA via P/Invoke since WinForms is not enabled
+            try
+            {
+                // Get window handle for message loop
+                _hWnd = WindowNative.GetWindowHandle(this);
+                // Prefer project image (png/jpg) shipped in Assets as tray icon; fallback to .ico then application icon
+                IntPtr hIcon = IntPtr.Zero;
+                // try runtime-created icon from linux_image_transparent.jpg
+                var runtimeIconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "linux_image_transparent.jpg");
+                try
+                {
+                    if (File.Exists(runtimeIconPath))
+                    {
+                        try
+                        {
+                            using (var bmp = System.Drawing.Image.FromFile(runtimeIconPath) as System.Drawing.Bitmap)
+                            {
+                                if (bmp != null)
+                                {
+                                    hIcon = bmp.GetHicon();
+                                    _trayIconHandle = hIcon;
+                                }
+                            }
+                        }
+                        catch { hIcon = IntPtr.Zero; }
+                    }
+                }
+                catch { hIcon = IntPtr.Zero; }
+
+                // if runtime conversion failed, try an .ico file next
+                if (hIcon == IntPtr.Zero)
+                {
+                    var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "app.ico");
+                    if (File.Exists(iconPath))
+                    {
+                        hIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+                    }
+                }
+
+                // final fallback to standard application icon
+                if (hIcon == IntPtr.Zero)
+                {
+                    hIcon = LoadIcon(IntPtr.Zero, (IntPtr)32512); // IDI_APPLICATION
+                    if (hIcon == IntPtr.Zero) { _trayInitialized = false; return; }
+                }
+
+                var nid = new NOTIFYICONDATA();
+                nid.cbSize = Marshal.SizeOf<NOTIFYICONDATA>();
+                nid.hWnd = _hWnd;
+                nid.uID = 100;
+                nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+                nid.uCallbackMessage = WM_USER + 1;
+                nid.hIcon = hIcon;
+                var tip = "Bridge";
+                var sb = new System.Text.StringBuilder(tip);
+                nid.szTip = sb.ToString();
+
+                var success = Shell_NotifyIcon(NIM_ADD, ref nid);
+                _trayInitialized = success;
+
+                // Subclass window to receive tray messages
+                _wndProcDelegate = new WndProcDelegate(WndProc);
+                _originalWndProc = SetWindowLongPtr(_hWnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
+            }
+            catch { _trayInitialized = false; }
         }
 
         // Per-distro settings storage
@@ -157,6 +425,81 @@ namespace Bridge
                 Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { LoadingRing.IsActive = false; LoadingRing.Visibility = Visibility.Collapsed; });
             }
         }
+
+// PInvoke for notify icon
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+struct NOTIFYICONDATA
+{
+    public int cbSize;
+    public IntPtr hWnd;
+    public uint uID;
+    public uint uFlags;
+    public uint uCallbackMessage;
+    public IntPtr hIcon;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+    public string szTip;
+    // rest is omitted
+}
+
+const int NIF_MESSAGE = 0x00000001;
+const int NIF_ICON = 0x00000002;
+const int NIF_TIP = 0x00000004;
+const int NIM_ADD = 0x00000000;
+const int NIM_MODIFY = 0x00000001;
+const int NIM_DELETE = 0x00000002;
+const int WM_USER = 0x0400;
+
+const uint IMAGE_ICON = 1;
+const uint LR_LOADFROMFILE = 0x00000010;
+const uint LR_DEFAULTSIZE = 0x00000040;
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern IntPtr LoadImage(IntPtr hInst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
+
+[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+static extern bool Shell_NotifyIcon(int dwMessage, ref NOTIFYICONDATA lpdata);
+
+[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+[DllImport("user32.dll", CharSet = CharSet.Auto)]
+static extern IntPtr DefWindowProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
+
+const int GWLP_WNDPROC = -4;
+
+[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "AppendMenuW")]
+static extern bool AppendMenu(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string lpNewItem);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+const int SW_HIDE = 0;
+const int SW_SHOW = 5;
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool DestroyMenu(IntPtr hMenu);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool DestroyIcon(IntPtr hIcon);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern IntPtr CreatePopupMenu();
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool GetCursorPos(out POINT lpPoint);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern uint TrackPopupMenuEx(IntPtr hMenu, uint uFlags, int x, int y, IntPtr hWnd, IntPtr lptpm);
+
+[StructLayout(LayoutKind.Sequential)]
+struct POINT { public int X; public int Y; }
+
 
         private void UpdateCollection(IEnumerable<WslDistro> newList)
         {
@@ -542,6 +885,29 @@ namespace Bridge
                 _refreshTimer.Stop();
                 _refreshTimer = null;
             }
+
+            try
+            {
+                if (_trayInitialized)
+                {
+                    var nid = new NOTIFYICONDATA();
+                    nid.cbSize = Marshal.SizeOf<NOTIFYICONDATA>();
+                    nid.hWnd = _hWnd;
+                    nid.uID = 100;
+                    Shell_NotifyIcon(NIM_DELETE, ref nid);
+                }
+            }
+            catch { }
+
+            try
+            {
+                if (_trayIconHandle != IntPtr.Zero)
+                {
+                    DestroyIcon(_trayIconHandle);
+                    _trayIconHandle = IntPtr.Zero;
+                }
+            }
+            catch { }
         }
 
         // Top app bar actions (map to selected items)
@@ -580,7 +946,7 @@ namespace Bridge
             if (!selected.Any()) return;
 
             var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "AnNulla");
+            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "Annulla");
             if (!ok) return;
 
             foreach (var d in selected)

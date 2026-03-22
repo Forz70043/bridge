@@ -18,6 +18,75 @@
   <data name="Import_Error" xml:space="preserve">
     <value>Error al importar {0}: {1}</value>
   </data>
+  <data name="Tray_Open" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="Tray_Show" xml:space="preserve">
+    <value>Mostrar</value>
+  </data>
+  <data name="Tray_Settings" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="Tray_About" xml:space="preserve">
+    <value>Acerca de</value>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>Salir</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>Acerca de Bridge</value>
+  </data>
+  <data name="About_Content" xml:space="preserve">
+    <value>Bridge - administrador WSL nativo</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>Versión: {0}</value>
+  </data>
+  <data name="About_Build" xml:space="preserve">
+    <value>Compilación: {0}</value>
+  </data>
+  <data name="About_Repo" xml:space="preserve">
+    <value>Repositorio: https://github.com/Forz70043/Bridge</value>
+  </data>
+  <data name="About_ProducerLabel" xml:space="preserve">
+    <value>Producido por</value>
+  </data>
+  <data name="About_GitHubLabel" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="About_LinkedInLabel" xml:space="preserve">
+    <value>LinkedIn</value>
+  </data>
+  <data name="About_EmailLabel" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="About_OS" xml:space="preserve">
+    <value>SO: {0}</value>
+  </data>
+  <data name="About_Runtime" xml:space="preserve">
+    <value>Runtime: {0}</value>
+  </data>
+  <data name="About_Arch" xml:space="preserve">
+    <value>Arquitectura: {0}</value>
+  </data>
+  <data name="Settings_Global_StartDir" xml:space="preserve">
+    <value>Directorio de inicio predeterminado para nuevas terminales</value>
+  </data>
+  <data name="Settings_Global_Placeholder" xml:space="preserve">
+    <value>No configurado</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Configuración global</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
   <data name="Import_Completed" xml:space="preserve">
     <value>Importación completada: {0}</value>
   </data>
