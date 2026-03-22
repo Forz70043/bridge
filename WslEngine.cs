@@ -23,12 +23,13 @@ namespace Bridge
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                Arguments = "-l -v",
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 StandardOutputEncoding = Encoding.Unicode
             };
+            psi.ArgumentList.Add("-l");
+            psi.ArgumentList.Add("-v");
 
             var process = Process.Start(psi);
             if (process == null)
@@ -134,8 +135,13 @@ namespace Bridge
             {
                 throw new InvalidOperationException("Failed to start wsl.exe to terminate the specified WSL distribution.");
             }
+            await process.WaitForExitAsync();
+        }
+
+        /**
+         * Exports the specified WSL distribution to a tar file.
          * It executes the "wsl.exe --export <distroName> <filePath>" command.
-         * 
+         *
          * @param distroName The name of the WSL distribution to export.
          * @param filePath The path where the exported tar file will be saved.
          */
@@ -144,7 +150,7 @@ namespace Bridge
             var psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                CreateNoWindow = false,
+                CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -189,7 +195,7 @@ namespace Bridge
             var psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                CreateNoWindow = false,
+                CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
