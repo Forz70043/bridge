@@ -202,7 +202,7 @@ namespace Bridge
             linkedinBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.linkedin.com/in/alfonsopisicchio/")); };
             linksPanel.Children.Add(linkedinBtn);
 
-            var email = "alfonso@forz70043.dev";
+            var email = "info@pisicchio.dev";
             var emailBtn = new Button { Content = Localizer.GetOrDefault("About_EmailLabel", "Email"), Padding = new Thickness(8,4,8,4) };
             emailBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri($"mailto:{email}")); };
             linksPanel.Children.Add(emailBtn);
