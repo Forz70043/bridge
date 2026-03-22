@@ -1,0 +1,68 @@
+name: Validate .resw keys
+
+on:
+  push:
+    paths:
+      - 'Strings/**'
+  pull_request:
+    paths:
+      - 'Strings/**'
+
+jobs:
+  resw-validate:
+    name: Check .resw key synchronization
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate .resw keys
+        shell: pwsh
+        run: |
+          $reswFiles = Get-ChildItem -Path "$PWD/Strings" -Recurse -Filter Resources.resw -ErrorAction SilentlyContinue
+          if (-not $reswFiles) {
+            Write-Host "No Resources.resw files found under Strings/. Skipping validation."
+            exit 0
+          }
+
+          $allKeys = [System.Collections.Generic.HashSet[string]]::new()
+          $fileKeysMap = @{
+          }
+
+          foreach ($f in $reswFiles) {
+            try {
+              $xml = New-Object System.Xml.XmlDocument
+              $xml.Load($f.FullName)
+              $nodes = $xml.SelectNodes('/root/data')
+              $keys = @()
+              foreach ($n in $nodes) {
+                $attr = $n.Attributes['name']
+                if ($attr) { $keys += $attr.Value; $allKeys.Add($attr.Value) | Out-Null }
+              }
+              $fileKeysMap[$f.FullName] = $keys
+            }
+            catch {
+              Write-Error "Failed to parse $($f.FullName): $_"
+              exit 1
+            }
+          }
+
+          $hasError = $false
+          foreach ($entry in $fileKeysMap.GetEnumerator()) {
+            $missing = @()
+            foreach ($k in $allKeys) {
+              if (-not ($entry.Value -contains $k)) { $missing += $k }
+            }
+            if ($missing.Count -gt 0) {
+              $hasError = $true
+              Write-Error "File $($entry.Key) is missing keys:`n  $($missing -join "`n  ")"
+            }
+          }
+
+          if ($hasError) {
+            Write-Error "RESW validation failed: some Resources.resw files are missing keys."
+            exit 1
+          }
+          else {
+            Write-Host "RESW validation succeeded: all Resources.resw files contain the same keys ($($allKeys.Count) keys)."
+          }
