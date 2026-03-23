@@ -9,6 +9,12 @@
   <data name="Export_Error" xml:space="preserve">
     <value>å¯¼å‡ºé”™è¯¯ {0}ï¼š{1}</value>
   </data>
+  <data name="Export_StoppingFirst" xml:space="preserve">
+    <value>导出前正在停止 {0}...</value>
+  </data>
+  <data name="Export_InProgress" xml:space="preserve">
+    <value>正在导出 {0}...</value>
+  </data>
   <data name="Distro_Removed" xml:space="preserve">
     <value>å·²åˆ é™¤å‘è¡Œç‰ˆ {0}</value>
   </data>

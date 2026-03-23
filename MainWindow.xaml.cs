@@ -51,6 +51,20 @@ namespace Bridge
         public MainWindow()
         {
             this.InitializeComponent();
+
+            // Custom title bar
+            this.ExtendsContentIntoTitleBar = true;
+            this.SetTitleBar(TitleBarDragArea);
+            this.AppWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+            this.AppWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+            this.AppWindow.TitleBar.ButtonForegroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 170, 170, 170);
+            this.AppWindow.TitleBar.ButtonInactiveForegroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 100, 100, 100);
+            this.AppWindow.TitleBar.ButtonHoverBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 50, 50, 50);
+            this.AppWindow.TitleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 35, 35, 35);
+            AboutMenuItem.Text = Localizer.Get("Tray_About");
+            TitleBarGrid.Loaded += (s, e) => UpdateTitleBarLayout();
+            TitleBarGrid.SizeChanged += (s, e) => UpdateTitleBarLayout();
+
             InitializeTrayIcon();
             // Start periodic refresh to detect external changes to WSL state
             _refreshTimer = new Microsoft.UI.Xaml.DispatcherTimer();
@@ -248,6 +262,19 @@ namespace Bridge
             };
             await dlg.ShowAsync();
         }
+
+        private void UpdateTitleBarLayout()
+        {
+            if (this.Content?.XamlRoot == null) return;
+            double scale = this.Content.XamlRoot.RasterizationScale;
+            double rightInsetDips = AppWindow.TitleBar.RightInset / scale;
+            // ? button sits immediately before the system caption buttons
+            HelpButton.Margin = new Thickness(0, 0, rightInsetDips + 4, 0);
+            // drag region excludes the ? button (30px) + its spacing
+            TitleBarDragArea.Margin = new Thickness(0, 0, rightInsetDips + 38, 0);
+        }
+
+        private void TitleBarAbout_Click(object sender, RoutedEventArgs e) => ShowAbout();
 
         private void InitializeTrayIcon()
         {
@@ -641,6 +668,15 @@ struct POINT { public int X; public int Y; }
                 try
                 {
                     Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { distro.IsBusy = true; });
+
+                    // Terminate the distro before exporting to ensure a consistent snapshot
+                    if (string.Equals(distro.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                            ShowToast(Localizer.GetFormat("Export_StoppingFirst", distro.Name), TimeSpan.FromSeconds(2)));
+                        await new WslEngine().TerminateDistro(distro.Name);
+                    }
+
                     await new WslEngine().ExportDistro(distro.Name, filePath);
                     Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => ShowToast(Localizer.GetFormat("Export_Completed", filePath), TimeSpan.FromSeconds(4)));
                 }
@@ -719,7 +755,7 @@ struct POINT { public int X; public int Y; }
             {
                 TopOperationRing.IsActive = true;
                 TopOperationRing.Visibility = Visibility.Visible;
-                TopOperationText.Text = "Export in corso...";
+                TopOperationText.Text = Localizer.Get("Export_InProgress").Replace("{0}", "...").Split('.')[0];
                 TopOperationText.Visibility = Visibility.Visible;
 
                 foreach (var d in selected)
@@ -728,13 +764,21 @@ struct POINT { public int X; public int Y; }
                     var filePath = Path.Combine(folderPath, $"{d.Name}.tar");
                     try
                     {
+                        // Terminate the distro before exporting to ensure a consistent snapshot
+                        if (string.Equals(d.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                        {
+                            TopOperationText.Text = Localizer.GetFormat("Export_StoppingFirst", d.Name);
+                            await new WslEngine().TerminateDistro(d.Name);
+                        }
+
+                        TopOperationText.Text = Localizer.GetFormat("Export_InProgress", d.Name);
                         var output = await new WslEngine().ExportDistro(d.Name, filePath);
-                        ShowToast($"Export completato: {d.Name}", TimeSpan.FromSeconds(3));
+                        ShowToast(Localizer.GetFormat("Export_Completed", d.Name), TimeSpan.FromSeconds(3));
                         System.Diagnostics.Debug.WriteLine(output);
                     }
                     catch (Exception ex)
                     {
-                        ShowToast($"Errore export {d.Name}: {ex.Message}", TimeSpan.FromSeconds(5));
+                        ShowToast(Localizer.GetFormat("Export_Error", d.Name, ex.Message), TimeSpan.FromSeconds(5));
                     }
                     finally
                     {

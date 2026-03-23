@@ -9,6 +9,12 @@
   <data name="Export_Error" xml:space="preserve">
     <value>Errore export {0}: {1}</value>
   </data>
+  <data name="Export_StoppingFirst" xml:space="preserve">
+    <value>Arresto di {0} prima dell'export...</value>
+  </data>
+  <data name="Export_InProgress" xml:space="preserve">
+    <value>Export di {0} in corso...</value>
+  </data>
   <data name="Distro_Removed" xml:space="preserve">
     <value>Distro {0} rimossa</value>
   </data>
