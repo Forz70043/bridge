@@ -1,10 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="TestToast_Message" xml:space="preserve">
-    <value>NotificaciÃ³n de prueba: operaciÃ³n completada</value>
+    <value>Notificación de prueba: operación completada</value>
   </data>
   <data name="Export_Completed" xml:space="preserve">
-    <value>ExportaciÃ³n completada: {0}</value>
+    <value>Exportación completada: {0}</value>
   </data>
   <data name="Export_Error" xml:space="preserve">
     <value>Error al exportar {0}: {1}</value>
@@ -31,7 +31,7 @@
     <value>Mostrar</value>
   </data>
   <data name="Tray_Settings" xml:space="preserve">
-    <value>ConfiguraciÃ³n</value>
+    <value>Configuración</value>
   </data>
   <data name="Tray_About" xml:space="preserve">
     <value>Acerca de</value>
@@ -49,10 +49,10 @@
     <value>Cerrar</value>
   </data>
   <data name="About_Version" xml:space="preserve">
-    <value>VersiÃ³n: {0}</value>
+    <value>Versión: {0}</value>
   </data>
   <data name="About_Build" xml:space="preserve">
-    <value>CompilaciÃ³n: {0}</value>
+    <value>Compilación: {0}</value>
   </data>
   <data name="About_Repo" xml:space="preserve">
     <value>Repositorio: https://github.com/Forz70043/Bridge</value>
@@ -97,10 +97,10 @@
     <value>- Directorio donde se abre la shell de la distro (ej. /home/usuario)</value>
   </data>
   <data name="Settings_DistroTitle" xml:space="preserve">
-    <value>ConfiguraciÃ³n - {0}</value>
+    <value>Configuración - {0}</value>
   </data>
   <data name="Settings_Saved" xml:space="preserve">
-    <value>ConfiguraciÃ³n guardada para {0}</value>
+    <value>Configuración guardada para {0}</value>
   </data>
   <data name="Settings_Global_Placeholder" xml:space="preserve">
     <value>No configurado</value>
@@ -112,13 +112,13 @@
     <value>Selector de archivos no disponible</value>
   </data>
   <data name="Invalid_Folder" xml:space="preserve">
-    <value>Carpeta no vÃ¡lida</value>
+    <value>Carpeta no válida</value>
   </data>
   <data name="Import_NameLabel" xml:space="preserve">
     <value>Nombre de la nueva distro:</value>
   </data>
   <data name="Import_FolderLabel" xml:space="preserve">
-    <value>Carpeta de instalaciÃ³n:</value>
+    <value>Carpeta de instalación:</value>
   </data>
   <data name="Import_DialogTitle" xml:space="preserve">
     <value>Importar distro</value>
@@ -127,22 +127,22 @@
     <value>Importar</value>
   </data>
   <data name="Import_InvalidFile" xml:space="preserve">
-    <value>Archivo .tar invÃ¡lido o inexistente</value>
+    <value>Archivo .tar inválido o inexistente</value>
   </data>
   <data name="Import_InvalidName" xml:space="preserve">
-    <value>Nombre de distro invÃ¡lido</value>
+    <value>Nombre de distro inválido</value>
   </data>
   <data name="Import_InvalidFolder" xml:space="preserve">
-    <value>Carpeta de instalaciÃ³n invÃ¡lida</value>
+    <value>Carpeta de instalación inválida</value>
   </data>
   <data name="Confirm_Delete_Title" xml:space="preserve">
-    <value>Eliminar distribuciÃ³n</value>
+    <value>Eliminar distribución</value>
   </data>
   <data name="Confirm_Delete_Single" xml:space="preserve">
-    <value>Â¿Seguro que desea eliminar '{0}'? Esta acciÃ³n es irreversible.</value>
+    <value>¿Seguro que desea eliminar '{0}'? Esta acción es irreversible.</value>
   </data>
   <data name="Confirm_Delete_Multi" xml:space="preserve">
-    <value>Â¿Seguro que desea eliminar: {0}? Esta acciÃ³n es irreversible.</value>
+    <value>¿Seguro que desea eliminar: {0}? Esta acción es irreversible.</value>
   </data>
   <data name="Action_Unregister" xml:space="preserve">
     <value>Eliminar</value>
@@ -151,7 +151,7 @@
     <value>Terminar distribuciones</value>
   </data>
   <data name="Confirm_Stop_Multi" xml:space="preserve">
-    <value>Â¿Seguro que desea terminar: {0}?</value>
+    <value>¿Seguro que desea terminar: {0}?</value>
   </data>
   <data name="Action_Terminate" xml:space="preserve">
     <value>Terminar</value>
@@ -160,10 +160,10 @@
     <value>Distro {0} terminada</value>
   </data>
   <data name="About_Copyright" xml:space="preserve">
-    <value>Â© 2024 Alfonso Pisicchio</value>
+    <value>© 2024 Alfonso Pisicchio</value>
   </data>
   <data name="Settings_Title" xml:space="preserve">
-    <value>ConfiguraciÃ³n global</value>
+    <value>Configuración global</value>
   </data>
   <data name="Save" xml:space="preserve">
     <value>Guardar</value>
@@ -172,6 +172,9 @@
     <value>Cancelar</value>
   </data>
   <data name="Import_Completed" xml:space="preserve">
-    <value>ImportaciÃ³n completada: {0}</value>
+    <value>Importación completada: {0}</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Examinar...</value>
   </data>
 </root>

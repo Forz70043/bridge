@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="TestToast_Message" xml:space="preserve">
     <value>Notifica di test: operazione completata</value>
@@ -136,10 +136,10 @@
     <value>Rimozione distribuzione</value>
   </data>
   <data name="Confirm_Delete_Single" xml:space="preserve">
-    <value>Sei sicuro di voler rimuovere '{0}'? Questa operazione non Ã¨ reversibile.</value>
+    <value>Sei sicuro di voler rimuovere '{0}'? Questa operazione non è reversibile.</value>
   </data>
   <data name="Confirm_Delete_Multi" xml:space="preserve">
-    <value>Sei sicuro di voler rimuovere: {0}? Questa operazione non Ã¨ reversibile.</value>
+    <value>Sei sicuro di voler rimuovere: {0}? Questa operazione non è reversibile.</value>
   </data>
   <data name="Action_Unregister" xml:space="preserve">
     <value>Rimuovi</value>
@@ -157,7 +157,7 @@
     <value>Distro {0} terminata</value>
   </data>
   <data name="About_Copyright" xml:space="preserve">
-    <value>Â© 2024 Alfonso Pisicchio</value>
+    <value>© 2024 Alfonso Pisicchio</value>
   </data>
   <data name="Settings_Global_Placeholder" xml:space="preserve">
     <value>Non configurato</value>
@@ -173,5 +173,8 @@
   </data>
   <data name="Import_Completed" xml:space="preserve">
     <value>Import completato: {0}</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Sfoglia...</value>
   </data>
 </root>

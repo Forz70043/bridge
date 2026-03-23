@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="TestToast_Message" xml:space="preserve">
     <value>æµ‹è¯•é€šçŸ¥ï¼šæ“ä½œå·²å®Œæˆ</value>
@@ -173,5 +173,9 @@
   </data>
   <data name="Import_Completed" xml:space="preserve">
     <value>å¯¼å…¥å®Œæˆï¼š{0}</value>
+  </data>
+
+  <data name="Browse" xml:space="preserve">
+    <value>浏览...</value>
   </data>
 </root>

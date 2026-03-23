@@ -1,10 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="TestToast_Message" xml:space="preserve">
-    <value>Notification de testÂ : opÃ©ration terminÃ©e</value>
+    <value>Notification de test : opération terminée</value>
   </data>
   <data name="Export_Completed" xml:space="preserve">
-    <value>Exportation terminÃ©eÂ : {0}</value>
+    <value>Exportation terminée : {0}</value>
   </data>
   <data name="Export_Error" xml:space="preserve">
     <value>Erreur d'exportation {0} : {1}</value>
@@ -16,7 +16,7 @@
     <value>Exportation de {0} en cours...</value>
   </data>
   <data name="Distro_Removed" xml:space="preserve">
-    <value>Distro {0} supprimÃ©e</value>
+    <value>Distro {0} supprimée</value>
   </data>
   <data name="Import_InProgress" xml:space="preserve">
     <value>Import {0} en cours...</value>
@@ -31,16 +31,16 @@
     <value>Afficher</value>
   </data>
   <data name="Tray_Settings" xml:space="preserve">
-    <value>ParamÃ¨tres</value>
+    <value>Paramètres</value>
   </data>
   <data name="Tray_About" xml:space="preserve">
-    <value>Ã€ propos</value>
+    <value>�? propos</value>
   </data>
   <data name="Tray_Exit" xml:space="preserve">
     <value>Quitter</value>
   </data>
   <data name="About_Title" xml:space="preserve">
-    <value>Ã€ propos de Bridge</value>
+    <value>�? propos de Bridge</value>
   </data>
   <data name="About_Content" xml:space="preserve">
     <value>Bridge - gestionnaire WSL natif</value>
@@ -55,7 +55,7 @@
     <value>Build : {0}</value>
   </data>
   <data name="About_Repo" xml:space="preserve">
-    <value>DÃ©pÃ´tÂ : https://github.com/Forz70043/Bridge</value>
+    <value>Dépôt : https://github.com/Forz70043/Bridge</value>
   </data>
   <data name="About_ProducerLabel" xml:space="preserve">
     <value>Produit par</value>
@@ -70,22 +70,22 @@
     <value>Email</value>
   </data>
   <data name="About_OS" xml:space="preserve">
-    <value>OSÂ : {0}</value>
+    <value>OS : {0}</value>
   </data>
   <data name="About_Runtime" xml:space="preserve">
-    <value>RuntimeÂ : {0}</value>
+    <value>Runtime : {0}</value>
   </data>
   <data name="About_Arch" xml:space="preserve">
-    <value>ArchitectureÂ : {0}</value>
+    <value>Architecture : {0}</value>
   </data>
   <data name="Settings_DefaultDir_Label" xml:space="preserve">
-    <value>RÃ©pertoire de dÃ©marrage</value>
+    <value>Répertoire de démarrage</value>
   </data>
   <data name="Settings_DefaultDir_Placeholder" xml:space="preserve">
     <value>ex. /home/utilisateur</value>
   </data>
   <data name="Settings_DefaultUser_Label" xml:space="preserve">
-    <value>Utilisateur par dÃ©faut</value>
+    <value>Utilisateur par défaut</value>
   </data>
   <data name="Settings_DefaultUser_Placeholder" xml:space="preserve">
     <value>ex. root</value>
@@ -94,22 +94,22 @@
     <value>Conseils :</value>
   </data>
   <data name="Settings_Hint1" xml:space="preserve">
-    <value>- RÃ©pertoire oÃ¹ s'ouvre le shell de la distro (ex. /home/utilisateur)</value>
+    <value>- Répertoire où s'ouvre le shell de la distro (ex. /home/utilisateur)</value>
   </data>
   <data name="Settings_DistroTitle" xml:space="preserve">
-    <value>ParamÃ¨tres - {0}</value>
+    <value>Paramètres - {0}</value>
   </data>
   <data name="Settings_Saved" xml:space="preserve">
-    <value>ParamÃ¨tres enregistrÃ©s pour {0}</value>
+    <value>Paramètres enregistrés pour {0}</value>
   </data>
   <data name="Settings_Global_Placeholder" xml:space="preserve">
-    <value>Non configurÃ©</value>
+    <value>Non configuré</value>
   </data>
   <data name="Select_AtLeastOne" xml:space="preserve">
-    <value>SÃ©lectionnez au moins une distro Ã  exporter</value>
+    <value>Sélectionnez au moins une distro à exporter</value>
   </data>
   <data name="Picker_Unavailable" xml:space="preserve">
-    <value>SÃ©lecteur de fichiers non disponible</value>
+    <value>Sélecteur de fichiers non disponible</value>
   </data>
   <data name="Invalid_Folder" xml:space="preserve">
     <value>Dossier invalide</value>
@@ -139,10 +139,10 @@
     <value>Supprimer la distribution</value>
   </data>
   <data name="Confirm_Delete_Single" xml:space="preserve">
-    <value>Voulez-vous vraiment supprimer '{0}' ? Cette action est irrÃ©versible.</value>
+    <value>Voulez-vous vraiment supprimer '{0}' ? Cette action est irréversible.</value>
   </data>
   <data name="Confirm_Delete_Multi" xml:space="preserve">
-    <value>Voulez-vous vraiment supprimer : {0} ? Cette action est irrÃ©versible.</value>
+    <value>Voulez-vous vraiment supprimer : {0} ? Cette action est irréversible.</value>
   </data>
   <data name="Action_Unregister" xml:space="preserve">
     <value>Supprimer</value>
@@ -157,13 +157,13 @@
     <value>Terminer</value>
   </data>
   <data name="Distro_Terminated" xml:space="preserve">
-    <value>Distro {0} terminÃ©e</value>
+    <value>Distro {0} terminée</value>
   </data>
   <data name="About_Copyright" xml:space="preserve">
-    <value>Â© 2024 Alfonso Pisicchio</value>
+    <value>© 2024 Alfonso Pisicchio</value>
   </data>
   <data name="Settings_Title" xml:space="preserve">
-    <value>ParamÃ¨tres globaux</value>
+    <value>Paramètres globaux</value>
   </data>
   <data name="Save" xml:space="preserve">
     <value>Enregistrer</value>
@@ -172,6 +172,10 @@
     <value>Annuler</value>
   </data>
   <data name="Import_Completed" xml:space="preserve">
-    <value>Importation terminÃ©eÂ : {0}</value>
+    <value>Importation terminée : {0}</value>
+  </data>
+
+  <data name="Browse" xml:space="preserve">
+    <value>Parcourir...</value>
   </data>
 </root>
