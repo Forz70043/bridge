@@ -51,6 +51,20 @@ namespace Bridge
         public MainWindow()
         {
             this.InitializeComponent();
+
+            // Custom title bar
+            this.ExtendsContentIntoTitleBar = true;
+            this.SetTitleBar(TitleBarDragArea);
+            this.AppWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+            this.AppWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+            this.AppWindow.TitleBar.ButtonForegroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 170, 170, 170);
+            this.AppWindow.TitleBar.ButtonInactiveForegroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 100, 100, 100);
+            this.AppWindow.TitleBar.ButtonHoverBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 50, 50, 50);
+            this.AppWindow.TitleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 35, 35, 35);
+            AboutMenuItem.Text = Localizer.Get("Tray_About");
+            TitleBarGrid.Loaded += (s, e) => UpdateTitleBarLayout();
+            TitleBarGrid.SizeChanged += (s, e) => UpdateTitleBarLayout();
+
             InitializeTrayIcon();
             // Start periodic refresh to detect external changes to WSL state
             _refreshTimer = new Microsoft.UI.Xaml.DispatcherTimer();
@@ -248,6 +262,19 @@ namespace Bridge
             };
             await dlg.ShowAsync();
         }
+
+        private void UpdateTitleBarLayout()
+        {
+            if (this.Content?.XamlRoot == null) return;
+            double scale = this.Content.XamlRoot.RasterizationScale;
+            double rightInsetDips = AppWindow.TitleBar.RightInset / scale;
+            // ? button sits immediately before the system caption buttons
+            HelpButton.Margin = new Thickness(0, 0, rightInsetDips + 4, 0);
+            // drag region excludes the ? button (30px) + its spacing
+            TitleBarDragArea.Margin = new Thickness(0, 0, rightInsetDips + 38, 0);
+        }
+
+        private void TitleBarAbout_Click(object sender, RoutedEventArgs e) => ShowAbout();
 
         private void InitializeTrayIcon()
         {
@@ -641,6 +668,15 @@ struct POINT { public int X; public int Y; }
                 try
                 {
                     Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { distro.IsBusy = true; });
+
+                    // Terminate the distro before exporting to ensure a consistent snapshot
+                    if (string.Equals(distro.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                            ShowToast(Localizer.GetFormat("Export_StoppingFirst", distro.Name), TimeSpan.FromSeconds(2)));
+                        await new WslEngine().TerminateDistro(distro.Name);
+                    }
+
                     await new WslEngine().ExportDistro(distro.Name, filePath);
                     Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => ShowToast(Localizer.GetFormat("Export_Completed", filePath), TimeSpan.FromSeconds(4)));
                 }
@@ -719,7 +755,7 @@ struct POINT { public int X; public int Y; }
             {
                 TopOperationRing.IsActive = true;
                 TopOperationRing.Visibility = Visibility.Visible;
-                TopOperationText.Text = "Export in corso...";
+                TopOperationText.Text = Localizer.GetFormat("Export_InProgress", "...");
                 TopOperationText.Visibility = Visibility.Visible;
 
                 foreach (var d in selected)
@@ -728,13 +764,21 @@ struct POINT { public int X; public int Y; }
                     var filePath = Path.Combine(folderPath, $"{d.Name}.tar");
                     try
                     {
+                        // Terminate the distro before exporting to ensure a consistent snapshot
+                        if (string.Equals(d.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                        {
+                            TopOperationText.Text = Localizer.GetFormat("Export_StoppingFirst", d.Name);
+                            await new WslEngine().TerminateDistro(d.Name);
+                        }
+
+                        TopOperationText.Text = Localizer.GetFormat("Export_InProgress", d.Name);
                         var output = await new WslEngine().ExportDistro(d.Name, filePath);
-                        ShowToast($"Export completato: {d.Name}", TimeSpan.FromSeconds(3));
+                        ShowToast(Localizer.GetFormat("Export_Completed", d.Name), TimeSpan.FromSeconds(3));
                         System.Diagnostics.Debug.WriteLine(output);
                     }
                     catch (Exception ex)
                     {
-                        ShowToast($"Errore export {d.Name}: {ex.Message}", TimeSpan.FromSeconds(5));
+                        ShowToast(Localizer.GetFormat("Export_Error", d.Name, ex.Message), TimeSpan.FromSeconds(5));
                     }
                     finally
                     {
@@ -779,14 +823,78 @@ struct POINT { public int X; public int Y; }
             }
 
             // Ask for distro name and install folder
-            var panel = new StackPanel();
+            var defaultParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WSL");
+            var selectedParent = defaultParent;
+
+            var panel = new StackPanel { Spacing = 4 };
+
             panel.Children.Add(new TextBlock { Text = Localizer.Get("Import_NameLabel"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
             var nameBox = new TextBox { Text = Path.GetFileNameWithoutExtension(file.Name) };
             panel.Children.Add(nameBox);
 
-            panel.Children.Add(new TextBlock { Text = Localizer.Get("Import_FolderLabel"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
-            var installBox = new TextBox { Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WSL", nameBox.Text) };
-            panel.Children.Add(installBox);
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Import_FolderLabel"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0, 8, 0, 0) });
+
+            // Folder row: read-only TextBox + Browse button (same pattern as export)
+            var folderRow = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+            folderRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            folderRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var installBox = new TextBox
+            {
+                Text = Path.Combine(defaultParent, nameBox.Text.Trim()),
+                IsReadOnly = true,
+                Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 30, 30, 30))
+            };
+            Grid.SetColumn(installBox, 0);
+            folderRow.Children.Add(installBox);
+
+            var browseBtn = new Button { Content = Localizer.Get("Browse"), Margin = new Thickness(8, 0, 0, 0) };
+            Grid.SetColumn(browseBtn, 1);
+            folderRow.Children.Add(browseBtn);
+            panel.Children.Add(folderRow);
+
+            // Browse button opens FolderPicker and updates install path
+            browseBtn.Click += async (s, args) =>
+            {
+                var folderPicker = new Windows.Storage.Pickers.FolderPicker();
+                InitializeWithWindow.Initialize(folderPicker, hwnd);
+                folderPicker.FileTypeFilter.Add("*");
+                StorageFolder? picked = null;
+                try
+                {
+                    picked = await folderPicker.PickSingleFolderAsync();
+                }
+                catch (Exception)
+                {
+                    ShowToast(Localizer.Get("Picker_Unavailable"));
+                }
+                if (picked != null)
+                {
+                    var pickedPath = picked.Path;
+                    if (string.IsNullOrWhiteSpace(pickedPath))
+                    {
+                        var invalidFolderDialog = new ContentDialog
+                        {
+                            Title = Localizer.Get("Error"),
+                            Content = Localizer.Get("Invalid_Folder"),
+                            CloseButtonText = Localizer.Get("OK"),
+                            XamlRoot = this.Content.XamlRoot
+                        };
+                        await invalidFolderDialog.ShowAsync();
+                        return;
+                    }
+                    selectedParent = pickedPath;
+                    installBox.Text = Path.Combine(selectedParent, nameBox.Text.Trim());
+                }
+            };
+
+            // Keep install path in sync when the user changes the distro name
+            nameBox.TextChanged += (s, args) =>
+            {
+                var n = nameBox.Text.Trim();
+                if (!string.IsNullOrWhiteSpace(n))
+                    installBox.Text = Path.Combine(selectedParent, n);
+            };
 
             var dlg = new ContentDialog
             {

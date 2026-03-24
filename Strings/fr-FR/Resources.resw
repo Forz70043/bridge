@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="TestToast_Message" xml:space="preserve">
     <value>Notification de test : opération terminée</value>
@@ -8,6 +8,12 @@
   </data>
   <data name="Export_Error" xml:space="preserve">
     <value>Erreur d'exportation {0} : {1}</value>
+  </data>
+  <data name="Export_StoppingFirst" xml:space="preserve">
+    <value>Arrêt de {0} avant l'exportation...</value>
+  </data>
+  <data name="Export_InProgress" xml:space="preserve">
+    <value>Exportation de {0} en cours...</value>
   </data>
   <data name="Distro_Removed" xml:space="preserve">
     <value>Distro {0} supprimée</value>
@@ -167,5 +173,9 @@
   </data>
   <data name="Import_Completed" xml:space="preserve">
     <value>Importation terminée : {0}</value>
+  </data>
+
+  <data name="Browse" xml:space="preserve">
+    <value>Parcourir...</value>
   </data>
 </root>
