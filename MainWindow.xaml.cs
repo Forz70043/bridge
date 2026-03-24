@@ -755,7 +755,7 @@ struct POINT { public int X; public int Y; }
             {
                 TopOperationRing.IsActive = true;
                 TopOperationRing.Visibility = Visibility.Visible;
-                TopOperationText.Text = Localizer.Get("Export_InProgress").Replace("{0}", "...").Split('.')[0];
+                TopOperationText.Text = Localizer.GetFormat("Export_InProgress", "...");
                 TopOperationText.Visibility = Visibility.Visible;
 
                 foreach (var d in selected)

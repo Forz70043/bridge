@@ -44,3 +44,6 @@ L'Applicazione richiede i permessi di "Full Trust" esclusivamente per interagire
 
 ## 4. Servizi di Terze Parti
 Bridge non integra alcun servizio di analisi, pubblicità o archiviazione cloud di terze parti.
+
+## 5. Contatti
+Se hai domande riguardo questa informativa, puoi aprire una issue sul repository ufficiale GitHub.
