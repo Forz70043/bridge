@@ -34,13 +34,13 @@
     <value>Paramètres</value>
   </data>
   <data name="Tray_About" xml:space="preserve">
-    <value>�? propos</value>
+    <value>À propos</value>
   </data>
   <data name="Tray_Exit" xml:space="preserve">
     <value>Quitter</value>
   </data>
   <data name="About_Title" xml:space="preserve">
-    <value>�? propos de Bridge</value>
+    <value>À propos de Bridge</value>
   </data>
   <data name="About_Content" xml:space="preserve">
     <value>Bridge - gestionnaire WSL natif</value>
