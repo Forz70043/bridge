@@ -870,7 +870,20 @@ struct POINT { public int X; public int Y; }
                 }
                 if (picked != null)
                 {
-                    selectedParent = picked.Path;
+                    var pickedPath = picked.Path;
+                    if (string.IsNullOrWhiteSpace(pickedPath))
+                    {
+                        var invalidFolderDialog = new ContentDialog
+                        {
+                            Title = Localizer.Get("Error"),
+                            Content = Localizer.Get("Invalid_Folder"),
+                            CloseButtonText = Localizer.Get("OK"),
+                            XamlRoot = this.Content.XamlRoot
+                        };
+                        await invalidFolderDialog.ShowAsync();
+                        return;
+                    }
+                    selectedParent = pickedPath;
                     installBox.Text = Path.Combine(selectedParent, nameBox.Text.Trim());
                 }
             };
