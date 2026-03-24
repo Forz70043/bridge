@@ -36,7 +36,7 @@
                     Background="Transparent" BorderThickness="0"
                     Foreground="#888" FontSize="14" FontWeight="SemiBold"
                     Padding="0"
-                    ToolTipService.ToolTip="{x:Bind local:Localizer.Help, Mode=OneWay}">
+                    ToolTipService.ToolTip="Help">
                 <Button.Content>
                     <FontIcon Glyph="&#xE897;" FontFamily="Segoe Fluent Icons" FontSize="13"/>
                 </Button.Content>
@@ -107,7 +107,7 @@
                             <ColumnDefinition Width="180"/>
                         </Grid.ColumnDefinitions>
 
-                        <FontIcon Glyph="" FontFamily="Segoe Fluent Icons" Foreground="{x:Bind StatusColor, Mode=OneWay}" FontSize="12"/>
+                        <Ellipse Width="10" Height="10" Fill="{x:Bind StatusColor, Mode=OneWay}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
                         <TextBlock Text="{x:Bind Name, Mode=OneWay}" Grid.Column="1" VerticalAlignment="Center" FontWeight="Medium"/>
                         <TextBlock Text="{x:Bind Status, Mode=OneWay}" Grid.Column="2" VerticalAlignment="Center" Foreground="#aaa"/>
