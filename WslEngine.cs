@@ -123,10 +123,13 @@ namespace Bridge
          */
         public async Task TerminateDistro(string distroName)
         {
-            ProcessStartInfo psi = new ProcessStartInfo
+            var psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                StandardErrorEncoding = Encoding.Unicode
             };
             psi.ArgumentList.Add("--terminate");
             psi.ArgumentList.Add(distroName);
@@ -135,7 +138,15 @@ namespace Bridge
             {
                 throw new InvalidOperationException("Failed to start wsl.exe to terminate the specified WSL distribution.");
             }
+
+            var errTask = process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
+            var stderr = await errTask;
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"wsl --terminate failed (exit code {process.ExitCode}): {stderr.Trim()}");
+            }
         }
 
         /**
@@ -154,15 +165,14 @@ namespace Bridge
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.Unicode
+                StandardOutputEncoding = Encoding.Unicode,
+                StandardErrorEncoding = Encoding.Unicode
             };
             psi.ArgumentList.Add("--export");
             psi.ArgumentList.Add(distroName);
             psi.ArgumentList.Add(filePath);
 
             using var process = Process.Start(psi);
-            var output = new StringBuilder();
-
             if (process == null)
             {
                 throw new InvalidOperationException("Failed to start wsl.exe to export the specified WSL distribution.");
@@ -173,10 +183,16 @@ namespace Bridge
 
             await process.WaitForExitAsync();
 
-            output.AppendLine(await outTask);
-            output.AppendLine(await errTask);
+            var stdout = await outTask;
+            var stderr = await errTask;
 
-            return output.ToString();
+            if (process.ExitCode != 0)
+            {
+                var msg = !string.IsNullOrWhiteSpace(stderr) ? stderr.Trim() : stdout.Trim();
+                throw new InvalidOperationException($"wsl --export failed (exit code {process.ExitCode}): {msg}");
+            }
+
+            return $"{stdout}\n{stderr}".Trim();
         }
 
         /**
@@ -199,7 +215,8 @@ namespace Bridge
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.Unicode
+                StandardOutputEncoding = Encoding.Unicode,
+                StandardErrorEncoding = Encoding.Unicode
             };
             psi.ArgumentList.Add("--import");
             psi.ArgumentList.Add(distroName);
@@ -207,8 +224,6 @@ namespace Bridge
             psi.ArgumentList.Add(filePath);
 
             using var process = Process.Start(psi);
-            var output = new StringBuilder();
-
             if (process == null)
             {
                 throw new InvalidOperationException("Failed to start wsl.exe to import the specified WSL distribution.");
@@ -219,10 +234,16 @@ namespace Bridge
 
             await process.WaitForExitAsync();
 
-            output.AppendLine(await outTask);
-            output.AppendLine(await errTask);
+            var stdout = await outTask;
+            var stderr = await errTask;
 
-            return output.ToString();
+            if (process.ExitCode != 0)
+            {
+                var msg = !string.IsNullOrWhiteSpace(stderr) ? stderr.Trim() : stdout.Trim();
+                throw new InvalidOperationException($"wsl --import failed (exit code {process.ExitCode}): {msg}");
+            }
+
+            return $"{stdout}\n{stderr}".Trim();
         }
 
         /**
@@ -231,10 +252,13 @@ namespace Bridge
          */
         public async Task UnregisterDistro(string distroName)
         {
-            ProcessStartInfo psi = new ProcessStartInfo
+            var psi = new ProcessStartInfo
             {
                 FileName = "wsl.exe",
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                StandardErrorEncoding = Encoding.Unicode
             };
             psi.ArgumentList.Add("--unregister");
             psi.ArgumentList.Add(distroName);
@@ -243,7 +267,15 @@ namespace Bridge
             {
                 throw new InvalidOperationException("Failed to start wsl.exe to unregister the specified WSL distribution.");
             }
+
+            var errTask = process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
+            var stderr = await errTask;
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"wsl --unregister failed (exit code {process.ExitCode}): {stderr.Trim()}");
+            }
         }
     }
 }
