@@ -824,7 +824,7 @@ struct POINT { public int X; public int Y; }
             }
 
             // Ask for distro name and install folder
-            var defaultParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WSL");
+            var defaultParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WSL");
             var selectedParent = defaultParent;
 
             var panel = new StackPanel { Spacing = 4 };
@@ -1074,14 +1074,6 @@ struct POINT { public int X; public int Y; }
         }
 
         // Utility: show a confirmation dialog and return true if primary button pressed
-        // Test button for toast messages
-        private void TestToast_Click(object sender, RoutedEventArgs e)
-        {
-            ShowToast("Notifica di test: operazione completata", TimeSpan.FromSeconds(3));
-            ShowToast("Seconda notifica", TimeSpan.FromSeconds(4));
-            ShowToast("Terza notifica (più lunga)", TimeSpan.FromSeconds(6));
-        }
-
         private async Task<bool> ConfirmAsync(string title, string content, string primaryText = "OK", string secondaryText = "Cancel")
         {
             var dlg = new ContentDialog

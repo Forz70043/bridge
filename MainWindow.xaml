@@ -25,7 +25,7 @@
             <!-- Drag region: full width minus ? button + system caption buttons (margin set from code) -->
             <Grid x:Name="TitleBarDragArea">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="12,0,0,0">
-                    <FontIcon Glyph="&#xE700;" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="#4e94ff"/>
+                    <Image Source="Assets/linux_image_transparent.png" Width="16" Height="16" VerticalAlignment="Center"/>
                     <TextBlock Text="Bridge" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
@@ -55,9 +55,6 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal" Padding="20" Spacing="15" Background="#1a1a1a">
             <TextBox x:Name="SearchBox" PlaceholderText="Search wsl..." Width="300" Background="#252525" BorderThickness="0" TextChanged="SearchBox_TextChanged"/>
             <ToggleSwitch x:Name="OnlyRunningToggle" OnContent="Only running" OffContent="Show all" IsOn="False" Toggled="OnlyRunning_Toggled" VerticalAlignment="Center"/>
-
-            <!-- Pulsante di test toast -->
-            <Button Content="Test Toast" Click="TestToast_Click" VerticalAlignment="Center" />
 
             <!-- Status operazione top -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0">

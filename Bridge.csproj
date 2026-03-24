@@ -27,6 +27,7 @@
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
     <Content Include="Assets\BadgeLogo.scale-200.png" />
     <Content Include="Assets\linux_image_transparent.jpg" />
+    <Content Include="Assets\linux_image_transparent.png" />
     <Content Include="Assets\Icons\app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
