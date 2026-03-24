@@ -7,7 +7,13 @@
     <value>导出完成：{0}</value>
   </data>
   <data name="Export_Error" xml:space="preserve">
-    <value>导出错误 {0}：{1}</value>
+    <value>å¯¼å‡ºé”™è¯¯ {0}ï¼š{1}</value>
+  </data>
+  <data name="Export_StoppingFirst" xml:space="preserve">
+    <value>导出前正在停止 {0}...</value>
+  </data>
+  <data name="Export_InProgress" xml:space="preserve">
+    <value>正在导出 {0}...</value>
   </data>
   <data name="Distro_Removed" xml:space="preserve">
     <value>已删除发行版 {0}</value>
@@ -18,10 +24,158 @@
   <data name="Import_Error" xml:space="preserve">
     <value>导入错误 {0}：{1}</value>
   </data>
-  <data name="Import_Completed" xml:space="preserve">
-    <value>导入完成：{0}</value>
+  <data name="Tray_Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Tray_Show" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Tray_Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Tray_About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>关于 Bridge</value>
+  </data>
+  <data name="About_Content" xml:space="preserve">
+    <value>Bridge - 原生 WSL 管理器</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>版本：{0}</value>
+  </data>
+  <data name="About_Build" xml:space="preserve">
+    <value>构建：{0}</value>
+  </data>
+  <data name="About_Repo" xml:space="preserve">
+    <value>仓库： https://github.com/Forz70043/Bridge</value>
+  </data>
+  <data name="About_ProducerLabel" xml:space="preserve">
+    <value>制作： </value>
+  </data>
+  <data name="About_GitHubLabel" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="About_LinkedInLabel" xml:space="preserve">
+    <value>LinkedIn</value>
+  </data>
+  <data name="About_EmailLabel" xml:space="preserve">
+    <value>电子邮件</value>
+  </data>
+  <data name="About_OS" xml:space="preserve">
+    <value>操作系统：{0}</value>
+  </data>
+  <data name="About_Runtime" xml:space="preserve">
+    <value>运行时：{0}</value>
+  </data>
+  <data name="About_Arch" xml:space="preserve">
+    <value>架构：{0}</value>
+  </data>
+  <data name="Settings_DefaultDir_Label" xml:space="preserve">
+    <value>启动目录</value>
+  </data>
+  <data name="Settings_DefaultDir_Placeholder" xml:space="preserve">
+    <value>例如 /home/user</value>
+  </data>
+  <data name="Settings_DefaultUser_Label" xml:space="preserve">
+    <value>默认用户</value>
+  </data>
+  <data name="Settings_DefaultUser_Placeholder" xml:space="preserve">
+    <value>例如 root</value>
+  </data>
+  <data name="Settings_Hints_Label" xml:space="preserve">
+    <value>提示：</value>
+  </data>
+  <data name="Settings_Hint1" xml:space="preserve">
+    <value>- 打开发行版 shell 的目录（例如 /home/user）</value>
+  </data>
+  <data name="Settings_DistroTitle" xml:space="preserve">
+    <value>设置 - {0}</value>
+  </data>
+  <data name="Settings_Saved" xml:space="preserve">
+    <value>已保存 {0} 的设置</value>
+  </data>
+  <data name="Settings_Global_Placeholder" xml:space="preserve">
+    <value>未配置</value>
   </data>
   <data name="Select_AtLeastOne" xml:space="preserve">
-    <value>请选择至少一个要导出的发行版</value>
+    <value>请选择至少一个发行版进行导出</value>
+  </data>
+  <data name="Picker_Unavailable" xml:space="preserve">
+    <value>文件选择器不可用</value>
+  </data>
+  <data name="Invalid_Folder" xml:space="preserve">
+    <value>无效的文件夹</value>
+  </data>
+  <data name="Import_NameLabel" xml:space="preserve">
+    <value>新发行版名称：</value>
+  </data>
+  <data name="Import_FolderLabel" xml:space="preserve">
+    <value>安装文件夹：</value>
+  </data>
+  <data name="Import_DialogTitle" xml:space="preserve">
+    <value>导入发行版</value>
+  </data>
+  <data name="Import_Action" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="Import_InvalidFile" xml:space="preserve">
+    <value>.tar 文件无效或不存在</value>
+  </data>
+  <data name="Import_InvalidName" xml:space="preserve">
+    <value>发行版名称无效</value>
+  </data>
+  <data name="Import_InvalidFolder" xml:space="preserve">
+    <value>安装文件夹无效</value>
+  </data>
+  <data name="Confirm_Delete_Title" xml:space="preserve">
+    <value>注销发行版</value>
+  </data>
+  <data name="Confirm_Delete_Single" xml:space="preserve">
+    <value>确定要删除 '{0}' 吗？此操作不可撤销。</value>
+  </data>
+  <data name="Confirm_Delete_Multi" xml:space="preserve">
+    <value>确定要删除：{0} 吗？此操作不可撤销。</value>
+  </data>
+  <data name="Action_Unregister" xml:space="preserve">
+    <value>注销</value>
+  </data>
+  <data name="Confirm_Stop_Title" xml:space="preserve">
+    <value>终止发行版</value>
+  </data>
+  <data name="Confirm_Stop_Multi" xml:space="preserve">
+    <value>确定要终止：{0} 吗？</value>
+  </data>
+  <data name="Action_Terminate" xml:space="preserve">
+    <value>终止</value>
+  </data>
+  <data name="Distro_Terminated" xml:space="preserve">
+    <value>发行版 {0} 已终止</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>© 2024 Alfonso Pisicchio</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>全局设置</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Import_Completed" xml:space="preserve">
+    <value>å¯¼å…¥å®Œæˆï¼š{0}</value>
+  </data>
+
+  <data name="Browse" xml:space="preserve">
+    <value>浏览...</value>
   </data>
 </root>

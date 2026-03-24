@@ -12,33 +12,60 @@ using System.Linq;
 using WinRT.Interop;
 using Windows.Storage.Pickers;
 using Windows.Storage;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Drawing;
+using System.Threading;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace Bridge
 {
+    delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
     /// <summary>
     /// An empty window that can be used on its own or navigated to within a Frame.
     /// </summary>
     public sealed partial class MainWindow : Window
     {
+        const int WM_CLOSE = 0x0010;
+        const int WM_SYSCOMMAND = 0x0112;
+        const int SC_CLOSE = 0xF060;
+        private IntPtr _trayIconHandle = IntPtr.Zero;
+        private IntPtr _hWnd = IntPtr.Zero;
+        private bool _trayInitialized = false;
+        private IntPtr _originalWndProc = IntPtr.Zero;
+        private WndProcDelegate? _wndProcDelegate;
         private System.Collections.ObjectModel.ObservableCollection<WslDistro> _visibleDistros = new System.Collections.ObjectModel.ObservableCollection<WslDistro>();
         private Dictionary<string, WslDistro> _map = new Dictionary<string, WslDistro>(StringComparer.OrdinalIgnoreCase);
-        private Microsoft.UI.Xaml.DispatcherTimer _refreshTimer;
-        private bool _isLoading = false;
+        private Microsoft.UI.Xaml.DispatcherTimer? _refreshTimer;
+        private SemaphoreSlim _loadLock = new SemaphoreSlim(1, 1);
         private string _searchQuery = string.Empty;
 
         public MainWindow()
         {
-            //InitializeComponent();
             this.InitializeComponent();
+
+            // Custom title bar
+            this.ExtendsContentIntoTitleBar = true;
+            this.SetTitleBar(TitleBarDragArea);
+            this.AppWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+            this.AppWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+            this.AppWindow.TitleBar.ButtonForegroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 170, 170, 170);
+            this.AppWindow.TitleBar.ButtonInactiveForegroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 100, 100, 100);
+            this.AppWindow.TitleBar.ButtonHoverBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 50, 50, 50);
+            this.AppWindow.TitleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 35, 35, 35);
+            AboutMenuItem.Text = Localizer.Get("Tray_About");
+            TitleBarGrid.Loaded += (s, e) => UpdateTitleBarLayout();
+            TitleBarGrid.SizeChanged += (s, e) => UpdateTitleBarLayout();
+
+            InitializeTrayIcon();
             // Start periodic refresh to detect external changes to WSL state
             _refreshTimer = new Microsoft.UI.Xaml.DispatcherTimer();
             _refreshTimer.Interval = TimeSpan.FromSeconds(5);
@@ -50,6 +77,272 @@ namespace Bridge
             _ = LoadDistros(); // initial load
 
             this.Closed += MainWindow_Closed;
+        }
+
+        private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            // Intercept window close requests (clicking X) and hide to tray instead of closing
+            if (msg == WM_CLOSE || (msg == WM_SYSCOMMAND && (uint)wParam.ToInt64() == SC_CLOSE))
+            {
+                try
+                {
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                    {
+                        // Hide the window so app keeps running in the tray (use Win32 show/hide)
+                        ShowWindow(_hWnd, SW_HIDE);
+                    });
+                }
+                catch { }
+
+                // Consume the message so the window is not destroyed
+                return IntPtr.Zero;
+            }
+            if (msg == WM_USER + 1)
+            {
+                var notification = (uint)lParam.ToInt32();
+                // 0x0203 = WM_LBUTTONDBLCLK, 0x0201 = WM_LBUTTONDOWN, 0x0204 = WM_RBUTTONDOWN
+                const uint WM_LBUTTONDBLCLK = 0x0203;
+                const uint WM_RBUTTONDOWN = 0x0204;
+
+                if (notification == WM_LBUTTONDBLCLK)
+                {
+                    Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                    {
+                        ShowWindow(_hWnd, SW_RESTORE);
+                        this.Activate();
+                    });
+                }
+                else if (notification == WM_RBUTTONDOWN)
+                {
+                    // Show context menu near mouse
+                    ShowTrayContextMenu();
+                }
+            }
+
+            // call original only if subclassing succeeded
+            if (_originalWndProc != IntPtr.Zero)
+            {
+                return CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
+            }
+
+            // If the original window procedure is not available, fall back to the default
+            // window procedure to ensure proper message handling.
+            return DefWindowProc(hWnd, msg, wParam, lParam);
+        }
+
+        private void ShowTrayContextMenu()
+        {
+            try
+            {
+                // Use native Win32 popup menu (no WinForms dependency)
+                IntPtr hMenu = CreatePopupMenu();
+                if (hMenu == IntPtr.Zero) return;
+
+                const uint MF_STRING = 0x00000000;
+                const uint MF_SEPARATOR = 0x00000800;
+                const uint TPM_RETURNCMD = 0x0100;
+
+                const uint ID_ABOUT = 1000;
+                const uint ID_EXIT = 1001;
+
+                // Only About and Exit in tray menu (Open/Show/Settings removed per request)
+                AppendMenu(hMenu, MF_STRING, new UIntPtr(ID_ABOUT), Localizer.Get("Tray_About"));
+                AppendMenu(hMenu, MF_SEPARATOR, UIntPtr.Zero, string.Empty);
+                AppendMenu(hMenu, MF_STRING, new UIntPtr(ID_EXIT), Localizer.Get("Tray_Exit"));
+
+                if (GetCursorPos(out POINT pt))
+                {
+                    uint cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, pt.X, pt.Y, _hWnd, IntPtr.Zero);
+                    if (cmd != 0)
+                    {
+                        Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                        {
+                            switch (cmd)
+                            {
+                                case ID_ABOUT:
+                                    ShowAbout();
+                                    break;
+                                case ID_EXIT:
+                                    try
+                                    {
+                                        // remove tray icon first
+                                        if (_trayInitialized)
+                                        {
+                                            var nid = new NOTIFYICONDATA();
+                                            nid.cbSize = Marshal.SizeOf<NOTIFYICONDATA>();
+                                            nid.hWnd = _hWnd;
+                                            nid.uID = 100;
+                                            Shell_NotifyIcon(NIM_DELETE, ref nid);
+                                        }
+                                    }
+                                    catch { }
+
+                                    // exit application
+                                    Windows.ApplicationModel.Core.CoreApplication.Exit();
+                                    break;
+                            }
+                        });
+                    }
+                }
+
+                DestroyMenu(hMenu);
+            }
+            catch { }
+        }
+
+        private void ShowAbout()
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("About_Content"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+
+            var version = typeof(MainWindow).Assembly.GetName().Version?.ToString() ?? "n/a";
+            var asmPath = typeof(MainWindow).Assembly.Location;
+            string buildTime = "n/a";
+            try { if (!string.IsNullOrEmpty(asmPath) && File.Exists(asmPath)) buildTime = File.GetLastWriteTimeUtc(asmPath).ToString("u"); } catch { }
+
+            panel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Version", version), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Build", buildTime), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            // Technical info
+            var techPanel = new StackPanel { Margin = new Thickness(0,8,0,0) };
+            techPanel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_OS", Environment.OSVersion.VersionString), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            techPanel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Runtime", System.Environment.Version.ToString()), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            techPanel.Children.Add(new TextBlock { Text = Localizer.GetFormat("About_Arch", RuntimeInformation.OSArchitecture.ToString()), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            panel.Children.Add(techPanel);
+
+            // Producer / Contact
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("About_ProducerLabel"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = "Alfonso Pisicchio", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            // Links: GitHub, LinkedIn, Email
+            var linksPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0,8,0,0) };
+
+            var githubBtn = new Button { Content = Localizer.GetOrDefault("About_GitHubLabel", "GitHub"), Padding = new Thickness(8,4,8,4) };
+            githubBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://github.com/Forz70043")); };
+            linksPanel.Children.Add(githubBtn);
+
+            var linkedinBtn = new Button { Content = Localizer.GetOrDefault("About_LinkedInLabel", "LinkedIn"), Padding = new Thickness(8,4,8,4) };
+            linkedinBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri("https://www.linkedin.com/in/alfonsopisicchio/")); };
+            linksPanel.Children.Add(linkedinBtn);
+
+            var email = "info@pisicchio.dev";
+            var emailBtn = new Button { Content = Localizer.GetOrDefault("About_EmailLabel", "Email"), Padding = new Thickness(8,4,8,4) };
+            emailBtn.Click += async (s, e) => { await Windows.System.Launcher.LaunchUriAsync(new Uri($"mailto:{email}")); };
+            linksPanel.Children.Add(emailBtn);
+
+            panel.Children.Add(linksPanel);
+
+            // Copyright / repo
+            panel.Children.Add(new TextBlock { Text = Localizer.GetOrDefault("About_Repo", "Repository: https://github.com/Forz70043/Bridge"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = Localizer.GetOrDefault("About_Copyright", "© 2024 Alfonso Pisicchio"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            var dlg = new ContentDialog
+            {
+                Title = Localizer.Get("About_Title"),
+                Content = panel,
+                CloseButtonText = Localizer.Get("Close"),
+                XamlRoot = this.Content.XamlRoot
+            };
+            _ = dlg.ShowAsync();
+        }
+
+        private async Task OpenGlobalSettingsAsync()
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_Global_StartDir"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_Global_Placeholder"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+
+            var dlg = new ContentDialog
+            {
+                Title = Localizer.Get("Settings_Title"),
+                Content = panel,
+                PrimaryButtonText = Localizer.Get("Save"),
+                CloseButtonText = Localizer.Get("Cancel"),
+                XamlRoot = this.Content.XamlRoot
+            };
+            await dlg.ShowAsync();
+        }
+
+        private void UpdateTitleBarLayout()
+        {
+            if (this.Content?.XamlRoot == null) return;
+            double scale = this.Content.XamlRoot.RasterizationScale;
+            double rightInsetDips = AppWindow.TitleBar.RightInset / scale;
+            // ? button sits immediately before the system caption buttons
+            HelpButton.Margin = new Thickness(0, 0, rightInsetDips + 4, 0);
+            // drag region excludes the ? button (30px) + its spacing
+            TitleBarDragArea.Margin = new Thickness(0, 0, rightInsetDips + 38, 0);
+        }
+
+        private void TitleBarAbout_Click(object sender, RoutedEventArgs e) => ShowAbout();
+
+        private void InitializeTrayIcon()
+        {
+            // Implement tray icon using Win32 NOTIFYICONDATA via P/Invoke since WinForms is not enabled
+            try
+            {
+                // Get window handle for message loop
+                _hWnd = WindowNative.GetWindowHandle(this);
+                // Prefer project image (png/jpg) shipped in Assets as tray icon; fallback to .ico then application icon
+                IntPtr hIcon = IntPtr.Zero;
+                // try runtime-created icon from linux_image_transparent.jpg
+                var runtimeIconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "linux_image_transparent.jpg");
+                try
+                {
+                    if (File.Exists(runtimeIconPath))
+                    {
+                        try
+                        {
+                            using (var bmp = System.Drawing.Image.FromFile(runtimeIconPath) as System.Drawing.Bitmap)
+                            {
+                                if (bmp != null)
+                                {
+                                    hIcon = bmp.GetHicon();
+                                    _trayIconHandle = hIcon;
+                                }
+                            }
+                        }
+                        catch { hIcon = IntPtr.Zero; }
+                    }
+                }
+                catch { hIcon = IntPtr.Zero; }
+
+                // if runtime conversion failed, try an .ico file next
+                if (hIcon == IntPtr.Zero)
+                {
+                    var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "app.ico");
+                    if (File.Exists(iconPath))
+                    {
+                        hIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+                    }
+                }
+
+                // final fallback to standard application icon
+                if (hIcon == IntPtr.Zero)
+                {
+                    hIcon = LoadIcon(IntPtr.Zero, (IntPtr)32512); // IDI_APPLICATION
+                    if (hIcon == IntPtr.Zero) { _trayInitialized = false; return; }
+                }
+
+                var nid = new NOTIFYICONDATA();
+                nid.cbSize = Marshal.SizeOf<NOTIFYICONDATA>();
+                nid.hWnd = _hWnd;
+                nid.uID = 100;
+                nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+                nid.uCallbackMessage = WM_USER + 1;
+                nid.hIcon = hIcon;
+                var tip = "Bridge";
+                var sb = new System.Text.StringBuilder(tip);
+                nid.szTip = sb.ToString();
+
+                var success = Shell_NotifyIcon(NIM_ADD, ref nid);
+                _trayInitialized = success;
+
+                // Subclass window to receive tray messages
+                _wndProcDelegate = new WndProcDelegate(WndProc);
+                _originalWndProc = SetWindowLongPtr(_hWnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
+            }
+            catch { _trayInitialized = false; }
         }
 
         // Per-distro settings storage
@@ -95,30 +388,29 @@ namespace Bridge
         // Handler for per-distro settings button
         private async void Settings_Click(object sender, RoutedEventArgs e)
         {
-            var distro = (sender as Button).DataContext as WslDistro;
+            var distro = (sender as Button)?.DataContext as WslDistro;
             if (distro == null) return;
 
             var current = LoadSettingsFor(distro.Name);
 
             var panel = new StackPanel();
-            panel.Children.Add(new TextBlock { Text = "Directory di avvio (Start directory):", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
-            var dirBox = new TextBox { Text = string.IsNullOrEmpty(current.DefaultDir) ? "" : current.DefaultDir };
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_DefaultDir_Label"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+            var dirBox = new TextBox { Text = current.DefaultDir, PlaceholderText = Localizer.Get("Settings_DefaultDir_Placeholder") };
             panel.Children.Add(dirBox);
 
-            panel.Children.Add(new TextBlock { Text = "Default user (es. root):", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
-            var userBox = new TextBox { Text = string.IsNullOrEmpty(current.DefaultUser) ? "" : current.DefaultUser };
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_DefaultUser_Label"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
+            var userBox = new TextBox { Text = current.DefaultUser, PlaceholderText = Localizer.Get("Settings_DefaultUser_Placeholder") };
             panel.Children.Add(userBox);
 
-            panel.Children.Add(new TextBlock { Text = "Suggerimenti:", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray), Margin = new Thickness(0,8,0,0) });
-            panel.Children.Add(new TextBlock { Text = "- Directory dove aprire la shell della distro (es. /home/utente)", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
-            panel.Children.Add(new TextBlock { Text = "- Puoi impostare variabili d'ambiente (future feature)", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_Hints_Label"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray), Margin = new Thickness(0,8,0,0) });
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Settings_Hint1"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
 
             var dlg = new ContentDialog
             {
-                Title = $"Settings - {distro.Name}",
+                Title = Localizer.GetFormat("Settings_DistroTitle", distro.Name),
                 Content = panel,
-                PrimaryButtonText = "Salva",
-                CloseButtonText = "Annulla",
+                PrimaryButtonText = Localizer.Get("Save"),
+                CloseButtonText = Localizer.Get("Cancel"),
                 XamlRoot = this.Content.XamlRoot
             };
 
@@ -128,7 +420,7 @@ namespace Bridge
             current.DefaultUser = userBox.Text.Trim();
             SaveSettingsFor(distro.Name, current);
 
-            ShowToast($"Settings salvati per {distro.Name}", TimeSpan.FromSeconds(3));
+            ShowToast(Localizer.GetFormat("Settings_Saved", distro.Name), TimeSpan.FromSeconds(3));
         }
 
         /**
@@ -137,26 +429,94 @@ namespace Bridge
          */
         private async Task LoadDistros()
         {
-            if (_isLoading) return;
-            _isLoading = true;
+            if (!await _loadLock.WaitAsync(0)) return; // skip if already loading
             try
             {
-                // show loading ring
                 Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { LoadingRing.IsActive = true; LoadingRing.Visibility = Visibility.Visible; });
 
-                WslEngine engine = new WslEngine();
-                var newList = await engine.GetDistrosAsync();
-
-                // update collection in-place to avoid full rebind flicker
+                var newList = await new WslEngine().GetDistrosAsync();
                 UpdateCollection(newList);
             }
             finally
             {
-                _isLoading = false;
-                // hide loading ring
+                _loadLock.Release();
                 Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { LoadingRing.IsActive = false; LoadingRing.Visibility = Visibility.Collapsed; });
             }
         }
+
+// PInvoke for notify icon
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+struct NOTIFYICONDATA
+{
+    public int cbSize;
+    public IntPtr hWnd;
+    public uint uID;
+    public uint uFlags;
+    public uint uCallbackMessage;
+    public IntPtr hIcon;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+    public string szTip;
+    // rest is omitted
+}
+
+const int NIF_MESSAGE = 0x00000001;
+const int NIF_ICON = 0x00000002;
+const int NIF_TIP = 0x00000004;
+const int NIM_ADD = 0x00000000;
+const int NIM_DELETE = 0x00000002;
+const int WM_USER = 0x0400;
+
+const uint IMAGE_ICON = 1;
+const uint LR_LOADFROMFILE = 0x00000010;
+const uint LR_DEFAULTSIZE = 0x00000040;
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern IntPtr LoadImage(IntPtr hInst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
+
+[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+static extern bool Shell_NotifyIcon(int dwMessage, ref NOTIFYICONDATA lpdata);
+
+[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+[DllImport("user32.dll", CharSet = CharSet.Auto)]
+static extern IntPtr DefWindowProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
+
+const int GWLP_WNDPROC = -4;
+
+[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "AppendMenuW")]
+static extern bool AppendMenu(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string lpNewItem);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+const int SW_HIDE = 0;
+const int SW_RESTORE = 9;
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool DestroyMenu(IntPtr hMenu);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool DestroyIcon(IntPtr hIcon);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern IntPtr CreatePopupMenu();
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern bool GetCursorPos(out POINT lpPoint);
+
+[DllImport("user32.dll", SetLastError = true)]
+static extern uint TrackPopupMenuEx(IntPtr hMenu, uint uFlags, int x, int y, IntPtr hWnd, IntPtr lptpm);
+
+[StructLayout(LayoutKind.Sequential)]
+struct POINT { public int X; public int Y; }
+
 
         private void UpdateCollection(IEnumerable<WslDistro> newList)
         {
@@ -260,7 +620,7 @@ namespace Bridge
          */
         private void Start_Click(object sender, RoutedEventArgs e)
         {
-            var distro = (sender as Button).DataContext as WslDistro;
+            var distro = (sender as Button)?.DataContext as WslDistro;
             if (distro == null) return;
             var settings = LoadSettingsFor(distro.Name);
             var startDir = string.IsNullOrWhiteSpace(settings.DefaultDir) ? null : settings.DefaultDir;
@@ -274,9 +634,18 @@ namespace Bridge
          */
         private async void Stop_Click(object sender, RoutedEventArgs e)
         {
-            var distro = (sender as Button).DataContext as WslDistro;
-            await new WslEngine().TerminateDistro(distro.Name);
-            await LoadDistros(); // Update the list after stopping the distribution to reflect the new status
+            var distro = (sender as Button)?.DataContext as WslDistro;
+            if (distro == null) return;
+            try
+            {
+                distro.IsBusy = true;
+                await new WslEngine().TerminateDistro(distro.Name);
+            }
+            finally
+            {
+                distro.IsBusy = false;
+                await LoadDistros();
+            }
         }
 
         /**
@@ -286,8 +655,7 @@ namespace Bridge
          */
         private void Export_Click(object sender, RoutedEventArgs e)
         {
-            var distro = (sender as Button).DataContext as WslDistro;
-            // Qui potresti aggiungere una 'SaveFileDialog' per scegliere dove salvare il .tar
+            var distro = (sender as Button)?.DataContext as WslDistro;
             if (distro == null) return;
 
             // default folder under Documents\WSLBackups
@@ -300,6 +668,15 @@ namespace Bridge
                 try
                 {
                     Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => { distro.IsBusy = true; });
+
+                    // Terminate the distro before exporting to ensure a consistent snapshot
+                    if (string.Equals(distro.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                            ShowToast(Localizer.GetFormat("Export_StoppingFirst", distro.Name), TimeSpan.FromSeconds(2)));
+                        await new WslEngine().TerminateDistro(distro.Name);
+                    }
+
                     await new WslEngine().ExportDistro(distro.Name, filePath);
                     Windows.System.DispatcherQueue.GetForCurrentThread().TryEnqueue(() => ShowToast(Localizer.GetFormat("Export_Completed", filePath), TimeSpan.FromSeconds(4)));
                 }
@@ -318,18 +695,17 @@ namespace Bridge
         // Added missing event handler referenced from XAML: Terminal_Click
         private async void Terminal_Click(object sender, RoutedEventArgs e)
         {
-            var distro = (sender as Button).DataContext as WslDistro;
-            if (distro != null)
-            {
-                var settings = LoadSettingsFor(distro.Name);
-                var startDir = string.IsNullOrWhiteSpace(settings.DefaultDir) ? null : settings.DefaultDir;
-                var user = string.IsNullOrWhiteSpace(settings.DefaultUser) ? null : settings.DefaultUser;
-                new WslEngine().StartTerminal(distro.Name, startDir, user);
+            var distro = (sender as Button)?.DataContext as WslDistro;
+            if (distro == null) return;
 
-                // Give WSL a short moment to change state, then refresh the list
-                await Task.Delay(800);
-                await LoadDistros();
-            }
+            var settings = LoadSettingsFor(distro.Name);
+            var startDir = string.IsNullOrWhiteSpace(settings.DefaultDir) ? null : settings.DefaultDir;
+            var user = string.IsNullOrWhiteSpace(settings.DefaultUser) ? null : settings.DefaultUser;
+            new WslEngine().StartTerminal(distro.Name, startDir, user);
+
+            // Give WSL a short moment to change state, then refresh the list
+            await Task.Delay(800);
+            await LoadDistros();
         }
 
         // New: Export selected distros (top command)
@@ -338,7 +714,7 @@ namespace Bridge
             var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
             if (!selected.Any())
             {
-                ShowToast("Seleziona almeno una distro da esportare", TimeSpan.FromSeconds(3));
+                ShowToast(Localizer.Get("Select_AtLeastOne"), TimeSpan.FromSeconds(3));
                 return;
             }
 
@@ -349,14 +725,14 @@ namespace Bridge
             // FolderPicker requires at least one FileTypeFilter item
             picker.FileTypeFilter.Add("*");
 
-            StorageFolder picked = null;
+            StorageFolder? picked = null;
             try
             {
                 picked = await picker.PickSingleFolderAsync();
             }
             catch
             {
-                ShowToast("Folder picker non disponibile", TimeSpan.FromSeconds(3));
+                ShowToast(Localizer.Get("Picker_Unavailable"), TimeSpan.FromSeconds(3));
                 return;
             }
 
@@ -369,7 +745,7 @@ namespace Bridge
             var folderPath = picked.Path;
             if (string.IsNullOrWhiteSpace(folderPath))
             {
-                ShowToast("Cartella non valida", TimeSpan.FromSeconds(3));
+                ShowToast(Localizer.Get("Invalid_Folder"), TimeSpan.FromSeconds(3));
                 return;
             }
 
@@ -379,7 +755,7 @@ namespace Bridge
             {
                 TopOperationRing.IsActive = true;
                 TopOperationRing.Visibility = Visibility.Visible;
-                TopOperationText.Text = "Export in corso...";
+                TopOperationText.Text = Localizer.GetFormat("Export_InProgress", "...");
                 TopOperationText.Visibility = Visibility.Visible;
 
                 foreach (var d in selected)
@@ -388,13 +764,21 @@ namespace Bridge
                     var filePath = Path.Combine(folderPath, $"{d.Name}.tar");
                     try
                     {
+                        // Terminate the distro before exporting to ensure a consistent snapshot
+                        if (string.Equals(d.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                        {
+                            TopOperationText.Text = Localizer.GetFormat("Export_StoppingFirst", d.Name);
+                            await new WslEngine().TerminateDistro(d.Name);
+                        }
+
+                        TopOperationText.Text = Localizer.GetFormat("Export_InProgress", d.Name);
                         var output = await new WslEngine().ExportDistro(d.Name, filePath);
-                        ShowToast($"Export completato: {d.Name}", TimeSpan.FromSeconds(3));
+                        ShowToast(Localizer.GetFormat("Export_Completed", d.Name), TimeSpan.FromSeconds(3));
                         System.Diagnostics.Debug.WriteLine(output);
                     }
                     catch (Exception ex)
                     {
-                        ShowToast($"Errore export {d.Name}: {ex.Message}", TimeSpan.FromSeconds(5));
+                        ShowToast(Localizer.GetFormat("Export_Error", d.Name, ex.Message), TimeSpan.FromSeconds(5));
                     }
                     finally
                     {
@@ -421,14 +805,14 @@ namespace Bridge
             InitializeWithWindow.Initialize(picker, hwnd);
             picker.FileTypeFilter.Add(".tar");
 
-            StorageFile file = null;
+            StorageFile? file = null;
             try
             {
                 file = await picker.PickSingleFileAsync();
             }
             catch
             {
-                ShowToast("Picker non disponibile", TimeSpan.FromSeconds(3));
+                ShowToast(Localizer.Get("Picker_Unavailable"), TimeSpan.FromSeconds(3));
                 return;
             }
 
@@ -439,21 +823,85 @@ namespace Bridge
             }
 
             // Ask for distro name and install folder
-            var panel = new StackPanel();
-            panel.Children.Add(new TextBlock { Text = "Nome della nuova distro:", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+            var defaultParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WSL");
+            var selectedParent = defaultParent;
+
+            var panel = new StackPanel { Spacing = 4 };
+
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Import_NameLabel"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
             var nameBox = new TextBox { Text = Path.GetFileNameWithoutExtension(file.Name) };
             panel.Children.Add(nameBox);
 
-            panel.Children.Add(new TextBlock { Text = "Cartella di installazione:", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0,8,0,0) });
-            var installBox = new TextBox { Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WSL", nameBox.Text) };
-            panel.Children.Add(installBox);
+            panel.Children.Add(new TextBlock { Text = Localizer.Get("Import_FolderLabel"), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), Margin = new Thickness(0, 8, 0, 0) });
+
+            // Folder row: read-only TextBox + Browse button (same pattern as export)
+            var folderRow = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+            folderRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            folderRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var installBox = new TextBox
+            {
+                Text = Path.Combine(defaultParent, nameBox.Text.Trim()),
+                IsReadOnly = true,
+                Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 30, 30, 30))
+            };
+            Grid.SetColumn(installBox, 0);
+            folderRow.Children.Add(installBox);
+
+            var browseBtn = new Button { Content = Localizer.Get("Browse"), Margin = new Thickness(8, 0, 0, 0) };
+            Grid.SetColumn(browseBtn, 1);
+            folderRow.Children.Add(browseBtn);
+            panel.Children.Add(folderRow);
+
+            // Browse button opens FolderPicker and updates install path
+            browseBtn.Click += async (s, args) =>
+            {
+                var folderPicker = new Windows.Storage.Pickers.FolderPicker();
+                InitializeWithWindow.Initialize(folderPicker, hwnd);
+                folderPicker.FileTypeFilter.Add("*");
+                StorageFolder? picked = null;
+                try
+                {
+                    picked = await folderPicker.PickSingleFolderAsync();
+                }
+                catch (Exception)
+                {
+                    ShowToast(Localizer.Get("Picker_Unavailable"));
+                }
+                if (picked != null)
+                {
+                    var pickedPath = picked.Path;
+                    if (string.IsNullOrWhiteSpace(pickedPath))
+                    {
+                        var invalidFolderDialog = new ContentDialog
+                        {
+                            Title = Localizer.Get("Error"),
+                            Content = Localizer.Get("Invalid_Folder"),
+                            CloseButtonText = Localizer.Get("OK"),
+                            XamlRoot = this.Content.XamlRoot
+                        };
+                        await invalidFolderDialog.ShowAsync();
+                        return;
+                    }
+                    selectedParent = pickedPath;
+                    installBox.Text = Path.Combine(selectedParent, nameBox.Text.Trim());
+                }
+            };
+
+            // Keep install path in sync when the user changes the distro name
+            nameBox.TextChanged += (s, args) =>
+            {
+                var n = nameBox.Text.Trim();
+                if (!string.IsNullOrWhiteSpace(n))
+                    installBox.Text = Path.Combine(selectedParent, n);
+            };
 
             var dlg = new ContentDialog
             {
-                Title = "Import distro",
+                Title = Localizer.Get("Import_DialogTitle"),
                 Content = panel,
-                PrimaryButtonText = "Importa",
-                CloseButtonText = "Annulla",
+                PrimaryButtonText = Localizer.Get("Import_Action"),
+                CloseButtonText = Localizer.Get("Cancel"),
                 XamlRoot = this.Content.XamlRoot
             };
 
@@ -465,31 +913,31 @@ namespace Bridge
 
             if (string.IsNullOrEmpty(tarPath) || !File.Exists(tarPath))
             {
-                ShowToast("File .tar non valido o inesistente", TimeSpan.FromSeconds(4));
+                ShowToast(Localizer.Get("Import_InvalidFile"), TimeSpan.FromSeconds(4));
                 return;
             }
             if (string.IsNullOrEmpty(name))
             {
-                ShowToast("Nome distro non valido", TimeSpan.FromSeconds(3));
+                ShowToast(Localizer.Get("Import_InvalidName"), TimeSpan.FromSeconds(3));
                 return;
             }
-            if (string.IsNullOrEmpty(installFolder)) { ShowToast("Cartella di installazione non valida", TimeSpan.FromSeconds(3)); return; }
+            if (string.IsNullOrEmpty(installFolder)) { ShowToast(Localizer.Get("Import_InvalidFolder"), TimeSpan.FromSeconds(3)); return; }
             Directory.CreateDirectory(installFolder);
 
             try
             {
                 TopOperationRing.IsActive = true;
                 TopOperationRing.Visibility = Visibility.Visible;
-                TopOperationText.Text = $"Import {name} in corso...";
+                TopOperationText.Text = Localizer.GetFormat("Import_InProgress", name);
                 TopOperationText.Visibility = Visibility.Visible;
 
                 var output = await new WslEngine().ImportDistro(name, installFolder, tarPath);
-                ShowToast($"Import completato: {name}", TimeSpan.FromSeconds(4));
+                ShowToast(Localizer.GetFormat("Import_Completed", name), TimeSpan.FromSeconds(4));
                 System.Diagnostics.Debug.WriteLine(output);
             }
             catch (Exception ex)
             {
-                ShowToast($"Errore import {name}: {ex.Message}", TimeSpan.FromSeconds(6));
+                ShowToast(Localizer.GetFormat("Import_Error", name, ex.Message), TimeSpan.FromSeconds(6));
             }
             finally
             {
@@ -509,20 +957,23 @@ namespace Bridge
         // Async implementation for per-item delete with confirmation
         private async Task Delete_Click_Impl(object sender, RoutedEventArgs e)
         {
-            var distro = (sender as Button).DataContext as WslDistro;
+            var distro = (sender as Button)?.DataContext as WslDistro;
             if (distro == null) return;
 
-            var ok = await ConfirmAsync("Unregister distribution", $"Sei sicuro di voler rimuovere la distro '{distro.Name}'? Queste operazioni non sono reversibili.", "Unregister", "Annulla");
+            var ok = await ConfirmAsync(
+                Localizer.Get("Confirm_Delete_Title"),
+                Localizer.GetFormat("Confirm_Delete_Single", distro.Name),
+                Localizer.Get("Action_Unregister"),
+                Localizer.Get("Cancel"));
             if (!ok) return;
             try
             {
-                // show per-item spinner
                 distro.IsBusy = true;
 
                 await new WslEngine().UnregisterDistro(distro.Name);
                 System.Diagnostics.Debug.WriteLine($"Delete completed for distro: {distro.Name}");
                 _map.Remove(distro.Name);
-                ShowToast($"Distro {distro.Name} rimossa", TimeSpan.FromSeconds(4));
+                ShowToast(Localizer.GetFormat("Distro_Removed", distro.Name), TimeSpan.FromSeconds(4));
             }
             finally
             {
@@ -542,6 +993,29 @@ namespace Bridge
                 _refreshTimer.Stop();
                 _refreshTimer = null;
             }
+
+            try
+            {
+                if (_trayInitialized)
+                {
+                    var nid = new NOTIFYICONDATA();
+                    nid.cbSize = Marshal.SizeOf<NOTIFYICONDATA>();
+                    nid.hWnd = _hWnd;
+                    nid.uID = 100;
+                    Shell_NotifyIcon(NIM_DELETE, ref nid);
+                }
+            }
+            catch { }
+
+            try
+            {
+                if (_trayIconHandle != IntPtr.Zero)
+                {
+                    DestroyIcon(_trayIconHandle);
+                    _trayIconHandle = IntPtr.Zero;
+                }
+            }
+            catch { }
         }
 
         // Top app bar actions (map to selected items)
@@ -551,7 +1025,11 @@ namespace Bridge
             if (!selected.Any()) return;
 
             var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Unregister distributions", $"Sei sicuro di voler rimuovere le distro: {names}? Queste operazioni non sono reversibili.", "Unregister", "Annulla");
+            var ok = await ConfirmAsync(
+                Localizer.Get("Confirm_Delete_Title"),
+                Localizer.GetFormat("Confirm_Delete_Multi", names),
+                Localizer.Get("Action_Unregister"),
+                Localizer.Get("Cancel"));
             if (!ok) return;
 
             foreach (var d in selected)
@@ -570,7 +1048,10 @@ namespace Bridge
             var selected = DistroList.SelectedItems.Cast<WslDistro>().ToList();
             foreach (var d in selected)
             {
-                new WslEngine().StartTerminal(d.Name);
+                var settings = LoadSettingsFor(d.Name);
+                var startDir = string.IsNullOrWhiteSpace(settings.DefaultDir) ? null : settings.DefaultDir;
+                var user = string.IsNullOrWhiteSpace(settings.DefaultUser) ? null : settings.DefaultUser;
+                new WslEngine().StartTerminal(d.Name, startDir, user);
             }
         }
 
@@ -580,7 +1061,7 @@ namespace Bridge
             if (!selected.Any()) return;
 
             var names = string.Join(", ", selected.Select(s => s.Name));
-            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "AnNulla");
+            var ok = await ConfirmAsync("Terminate distributions", $"Sei sicuro di voler terminare le distro: {names}?", "Termina", "Annulla");
             if (!ok) return;
 
             foreach (var d in selected)

@@ -9,6 +9,12 @@
   <data name="Export_Error" xml:space="preserve">
     <value>Errore export {0}: {1}</value>
   </data>
+  <data name="Export_StoppingFirst" xml:space="preserve">
+    <value>Arresto di {0} prima dell'export...</value>
+  </data>
+  <data name="Export_InProgress" xml:space="preserve">
+    <value>Export di {0} in corso...</value>
+  </data>
   <data name="Distro_Removed" xml:space="preserve">
     <value>Distro {0} rimossa</value>
   </data>
@@ -18,10 +24,157 @@
   <data name="Import_Error" xml:space="preserve">
     <value>Errore import {0}: {1}</value>
   </data>
-  <data name="Import_Completed" xml:space="preserve">
-    <value>Import completato: {0}</value>
+  <data name="Tray_Open" xml:space="preserve">
+    <value>Apri</value>
+  </data>
+  <data name="Tray_Show" xml:space="preserve">
+    <value>Mostra</value>
+  </data>
+  <data name="Tray_Settings" xml:space="preserve">
+    <value>Impostazioni</value>
+  </data>
+  <data name="Tray_About" xml:space="preserve">
+    <value>Informazioni</value>
+  </data>
+  <data name="Tray_Exit" xml:space="preserve">
+    <value>Esci</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>Informazioni su Bridge</value>
+  </data>
+  <data name="About_Content" xml:space="preserve">
+    <value>Bridge - gestore WSL nativo</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Chiudi</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>Versione: {0}</value>
+  </data>
+  <data name="About_Build" xml:space="preserve">
+    <value>Build: {0}</value>
+  </data>
+  <data name="About_Repo" xml:space="preserve">
+    <value>Repository: https://github.com/Forz70043/Bridge</value>
+  </data>
+  <data name="About_ProducerLabel" xml:space="preserve">
+    <value>Prodotto da</value>
+  </data>
+  <data name="About_GitHubLabel" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="About_LinkedInLabel" xml:space="preserve">
+    <value>LinkedIn</value>
+  </data>
+  <data name="About_EmailLabel" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="About_OS" xml:space="preserve">
+    <value>OS: {0}</value>
+  </data>
+  <data name="About_Runtime" xml:space="preserve">
+    <value>Runtime: {0}</value>
+  </data>
+  <data name="About_Arch" xml:space="preserve">
+    <value>Architettura: {0}</value>
+  </data>
+  <data name="Settings_DefaultDir_Label" xml:space="preserve">
+    <value>Directory di avvio</value>
+  </data>
+  <data name="Settings_DefaultDir_Placeholder" xml:space="preserve">
+    <value>es. /home/utente</value>
+  </data>
+  <data name="Settings_DefaultUser_Label" xml:space="preserve">
+    <value>Utente predefinito</value>
+  </data>
+  <data name="Settings_DefaultUser_Placeholder" xml:space="preserve">
+    <value>es. root</value>
+  </data>
+  <data name="Settings_Hints_Label" xml:space="preserve">
+    <value>Suggerimenti:</value>
+  </data>
+  <data name="Settings_Hint1" xml:space="preserve">
+    <value>- Directory dove aprire la shell della distro (es. /home/utente)</value>
+  </data>
+  <data name="Settings_DistroTitle" xml:space="preserve">
+    <value>Impostazioni - {0}</value>
+  </data>
+  <data name="Settings_Saved" xml:space="preserve">
+    <value>Impostazioni salvate per {0}</value>
   </data>
   <data name="Select_AtLeastOne" xml:space="preserve">
     <value>Seleziona almeno una distro da esportare</value>
+  </data>
+  <data name="Picker_Unavailable" xml:space="preserve">
+    <value>Selettore file non disponibile</value>
+  </data>
+  <data name="Invalid_Folder" xml:space="preserve">
+    <value>Cartella non valida</value>
+  </data>
+  <data name="Import_NameLabel" xml:space="preserve">
+    <value>Nome della nuova distro:</value>
+  </data>
+  <data name="Import_FolderLabel" xml:space="preserve">
+    <value>Cartella di installazione:</value>
+  </data>
+  <data name="Import_DialogTitle" xml:space="preserve">
+    <value>Importa distro</value>
+  </data>
+  <data name="Import_Action" xml:space="preserve">
+    <value>Importa</value>
+  </data>
+  <data name="Import_InvalidFile" xml:space="preserve">
+    <value>File .tar non valido o inesistente</value>
+  </data>
+  <data name="Import_InvalidName" xml:space="preserve">
+    <value>Nome distro non valido</value>
+  </data>
+  <data name="Import_InvalidFolder" xml:space="preserve">
+    <value>Cartella di installazione non valida</value>
+  </data>
+  <data name="Confirm_Delete_Title" xml:space="preserve">
+    <value>Rimozione distribuzione</value>
+  </data>
+  <data name="Confirm_Delete_Single" xml:space="preserve">
+    <value>Sei sicuro di voler rimuovere '{0}'? Questa operazione non è reversibile.</value>
+  </data>
+  <data name="Confirm_Delete_Multi" xml:space="preserve">
+    <value>Sei sicuro di voler rimuovere: {0}? Questa operazione non è reversibile.</value>
+  </data>
+  <data name="Action_Unregister" xml:space="preserve">
+    <value>Rimuovi</value>
+  </data>
+  <data name="Confirm_Stop_Title" xml:space="preserve">
+    <value>Termina distribuzioni</value>
+  </data>
+  <data name="Confirm_Stop_Multi" xml:space="preserve">
+    <value>Sei sicuro di voler terminare: {0}?</value>
+  </data>
+  <data name="Action_Terminate" xml:space="preserve">
+    <value>Termina</value>
+  </data>
+  <data name="Distro_Terminated" xml:space="preserve">
+    <value>Distro {0} terminata</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>© 2024 Alfonso Pisicchio</value>
+  </data>
+  <data name="Settings_Global_Placeholder" xml:space="preserve">
+    <value>Non configurato</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Impostazioni globali</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Salva</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="Import_Completed" xml:space="preserve">
+    <value>Import completato: {0}</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Sfoglia...</value>
   </data>
 </root>

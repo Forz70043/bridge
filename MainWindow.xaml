@@ -15,11 +15,44 @@
 
     <Grid Background="#121212">
         <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Padding="20" Spacing="15" Background="#1a1a1a">
+        <!-- Custom title bar -->
+        <Grid x:Name="TitleBarGrid" Grid.Row="0" Background="#1a1a1a">
+            <!-- Drag region: full width minus ? button + system caption buttons (margin set from code) -->
+            <Grid x:Name="TitleBarDragArea">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="12,0,0,0">
+                    <FontIcon Glyph="&#xE700;" FontFamily="Segoe Fluent Icons" FontSize="12" Foreground="#4e94ff"/>
+                    <TextBlock Text="Bridge" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+            <!-- ? Help button: positioned before system caption buttons (right margin set from code) -->
+            <Button x:Name="HelpButton"
+                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Width="30" Height="28"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="#888" FontSize="14" FontWeight="SemiBold"
+                    Padding="0"
+                    ToolTipService.ToolTip="{x:Bind local:Localizer.Help, Mode=OneWay}">
+                <Button.Content>
+                    <FontIcon Glyph="&#xE897;" FontFamily="Segoe Fluent Icons" FontSize="13"/>
+                </Button.Content>
+                <Button.Flyout>
+                    <MenuFlyout x:Name="HelpFlyout" Placement="BottomEdgeAlignedRight">
+                        <MenuFlyoutItem x:Name="AboutMenuItem" Click="TitleBarAbout_Click">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE946;" FontFamily="Segoe Fluent Icons"/>
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+        </Grid>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Padding="20" Spacing="15" Background="#1a1a1a">
             <TextBox x:Name="SearchBox" PlaceholderText="Search wsl..." Width="300" Background="#252525" BorderThickness="0" TextChanged="SearchBox_TextChanged"/>
             <ToggleSwitch x:Name="OnlyRunningToggle" OnContent="Only running" OffContent="Show all" IsOn="False" Toggled="OnlyRunning_Toggled" VerticalAlignment="Center"/>
 
@@ -45,7 +78,7 @@
             </CommandBar>
         </StackPanel>
 
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <ListView x:Name="DistroList" Padding="10" SelectionMode="Multiple">
             <ListView.Header>
                 <Grid Padding="15,10" Background="#1a1a1a" BorderBrush="#333" BorderThickness="0,0,0,1">
