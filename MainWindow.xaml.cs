@@ -824,7 +824,7 @@ struct POINT { public int X; public int Y; }
             }
 
             // Ask for distro name and install folder
-            var defaultParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WSL");
+            var defaultParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WSL");
             var selectedParent = defaultParent;
 
             var panel = new StackPanel { Spacing = 4 };
