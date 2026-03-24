@@ -860,7 +860,14 @@ struct POINT { public int X; public int Y; }
                 InitializeWithWindow.Initialize(folderPicker, hwnd);
                 folderPicker.FileTypeFilter.Add("*");
                 StorageFolder? picked = null;
-                try { picked = await folderPicker.PickSingleFolderAsync(); } catch { }
+                try
+                {
+                    picked = await folderPicker.PickSingleFolderAsync();
+                }
+                catch (Exception)
+                {
+                    ShowToast(Localizer.Get("Picker_Unavailable"));
+                }
                 if (picked != null)
                 {
                     selectedParent = picked.Path;
