@@ -1074,14 +1074,6 @@ struct POINT { public int X; public int Y; }
         }
 
         // Utility: show a confirmation dialog and return true if primary button pressed
-        // Test button for toast messages
-        private void TestToast_Click(object sender, RoutedEventArgs e)
-        {
-            ShowToast("Notifica di test: operazione completata", TimeSpan.FromSeconds(3));
-            ShowToast("Seconda notifica", TimeSpan.FromSeconds(4));
-            ShowToast("Terza notifica (più lunga)", TimeSpan.FromSeconds(6));
-        }
-
         private async Task<bool> ConfirmAsync(string title, string content, string primaryText = "OK", string secondaryText = "Cancel")
         {
             var dlg = new ContentDialog
