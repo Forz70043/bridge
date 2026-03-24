@@ -10,7 +10,7 @@
     <value>Erreur d'exportation {0} : {1}</value>
   </data>
   <data name="Export_StoppingFirst" xml:space="preserve">
-    <value>Arret de {0} avant l'exportation...</value>
+    <value>Arrêt de {0} avant l'exportation...</value>
   </data>
   <data name="Export_InProgress" xml:space="preserve">
     <value>Exportation de {0} en cours...</value>
