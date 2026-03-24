@@ -62,6 +62,7 @@ namespace Bridge
             this.AppWindow.TitleBar.ButtonHoverBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 50, 50, 50);
             this.AppWindow.TitleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(255, 35, 35, 35);
             AboutMenuItem.Text = Localizer.Get("Tray_About");
+            ToolTipService.SetToolTip(HelpButton, Localizer.Get("Tray_About"));
             TitleBarGrid.Loaded += (s, e) => UpdateTitleBarLayout();
             TitleBarGrid.SizeChanged += (s, e) => UpdateTitleBarLayout();
 
@@ -866,7 +867,7 @@ struct POINT { public int X; public int Y; }
                 }
                 catch (Exception)
                 {
-                    ShowToast(Localizer.Get("Picker_Unavailable"));
+                    ShowToast(Localizer.Get("Picker_Unavailable"), TimeSpan.FromSeconds(3));
                 }
                 if (picked != null)
                 {
