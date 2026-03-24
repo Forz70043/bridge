@@ -18,7 +18,7 @@ namespace Bridge
     internal class WslDistro : INotifyPropertyChanged
     {
         private static readonly SolidColorBrush BrushRunning = new SolidColorBrush(Colors.LimeGreen);
-        private static readonly SolidColorBrush BrushStopped = new SolidColorBrush(Colors.Gray);
+        private static readonly SolidColorBrush BrushStopped = new SolidColorBrush(ColorHelper.FromArgb(255, 110, 110, 110));
 
         private string _name = string.Empty;
         private string _status = string.Empty;
