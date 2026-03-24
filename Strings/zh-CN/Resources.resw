@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <data name="TestToast_Message" xml:space="preserve">
-    <value>æµ‹è¯•é€šçŸ¥ï¼šæ“ä½œå·²å®Œæˆ</value>
+    <value>测试通知：操作已完成</value>
   </data>
   <data name="Export_Completed" xml:space="preserve">
-    <value>å¯¼å‡ºå®Œæˆï¼š{0}</value>
+    <value>导出完成：{0}</value>
   </data>
   <data name="Export_Error" xml:space="preserve">
     <value>å¯¼å‡ºé”™è¯¯ {0}ï¼š{1}</value>
@@ -16,49 +16,49 @@
     <value>正在导出 {0}...</value>
   </data>
   <data name="Distro_Removed" xml:space="preserve">
-    <value>å·²åˆ é™¤å‘è¡Œç‰ˆ {0}</value>
+    <value>已删除发行版 {0}</value>
   </data>
   <data name="Import_InProgress" xml:space="preserve">
-    <value>å¯¼å…¥ {0} æ­£åœ¨è¿›è¡Œ...</value>
+    <value>导入 {0} 正在进行...</value>
   </data>
   <data name="Import_Error" xml:space="preserve">
-    <value>å¯¼å…¥é”™è¯¯ {0}ï¼š{1}</value>
+    <value>导入错误 {0}：{1}</value>
   </data>
   <data name="Tray_Open" xml:space="preserve">
-    <value>æ‰“å¼€</value>
+    <value>打开</value>
   </data>
   <data name="Tray_Show" xml:space="preserve">
-    <value>æ˜¾ç¤º</value>
+    <value>显示</value>
   </data>
   <data name="Tray_Settings" xml:space="preserve">
-    <value>è®¾ç½®</value>
+    <value>设置</value>
   </data>
   <data name="Tray_About" xml:space="preserve">
-    <value>å…³äºŽ</value>
+    <value>关于</value>
   </data>
   <data name="Tray_Exit" xml:space="preserve">
-    <value>é€€å‡º</value>
+    <value>退出</value>
   </data>
   <data name="About_Title" xml:space="preserve">
-    <value>å…³äºŽ Bridge</value>
+    <value>关于 Bridge</value>
   </data>
   <data name="About_Content" xml:space="preserve">
-    <value>Bridge - åŽŸç”Ÿ WSL ç®¡ç†å™¨</value>
+    <value>Bridge - 原生 WSL 管理器</value>
   </data>
   <data name="Close" xml:space="preserve">
-    <value>å…³é—­</value>
+    <value>关闭</value>
   </data>
   <data name="About_Version" xml:space="preserve">
-    <value>ç‰ˆæœ¬ï¼š{0}</value>
+    <value>版本：{0}</value>
   </data>
   <data name="About_Build" xml:space="preserve">
-    <value>æž„å»ºï¼š{0}</value>
+    <value>构建：{0}</value>
   </data>
   <data name="About_Repo" xml:space="preserve">
-    <value>ä»“åº“ï¼š https://github.com/Forz70043/Bridge</value>
+    <value>仓库： https://github.com/Forz70043/Bridge</value>
   </data>
   <data name="About_ProducerLabel" xml:space="preserve">
-    <value>åˆ¶ä½œï¼š </value>
+    <value>制作： </value>
   </data>
   <data name="About_GitHubLabel" xml:space="preserve">
     <value>GitHub</value>
@@ -67,109 +67,109 @@
     <value>LinkedIn</value>
   </data>
   <data name="About_EmailLabel" xml:space="preserve">
-    <value>ç”µå­é‚®ä»¶</value>
+    <value>电子邮件</value>
   </data>
   <data name="About_OS" xml:space="preserve">
-    <value>æ“ä½œç³»ç»Ÿï¼š{0}</value>
+    <value>操作系统：{0}</value>
   </data>
   <data name="About_Runtime" xml:space="preserve">
-    <value>è¿è¡Œæ—¶ï¼š{0}</value>
+    <value>运行时：{0}</value>
   </data>
   <data name="About_Arch" xml:space="preserve">
-    <value>æž¶æž„ï¼š{0}</value>
+    <value>架构：{0}</value>
   </data>
   <data name="Settings_DefaultDir_Label" xml:space="preserve">
-    <value>å¯åŠ¨ç›®å½•</value>
+    <value>启动目录</value>
   </data>
   <data name="Settings_DefaultDir_Placeholder" xml:space="preserve">
-    <value>ä¾‹å¦‚ /home/user</value>
+    <value>例如 /home/user</value>
   </data>
   <data name="Settings_DefaultUser_Label" xml:space="preserve">
-    <value>é»˜è®¤ç”¨æˆ·</value>
+    <value>默认用户</value>
   </data>
   <data name="Settings_DefaultUser_Placeholder" xml:space="preserve">
-    <value>ä¾‹å¦‚ root</value>
+    <value>例如 root</value>
   </data>
   <data name="Settings_Hints_Label" xml:space="preserve">
-    <value>æç¤ºï¼š</value>
+    <value>提示：</value>
   </data>
   <data name="Settings_Hint1" xml:space="preserve">
-    <value>- æ‰“å¼€å‘è¡Œç‰ˆ shell çš„ç›®å½•ï¼ˆä¾‹å¦‚ /home/userï¼‰</value>
+    <value>- 打开发行版 shell 的目录（例如 /home/user）</value>
   </data>
   <data name="Settings_DistroTitle" xml:space="preserve">
-    <value>è®¾ç½® - {0}</value>
+    <value>设置 - {0}</value>
   </data>
   <data name="Settings_Saved" xml:space="preserve">
-    <value>å·²ä¿å­˜ {0} çš„è®¾ç½®</value>
+    <value>已保存 {0} 的设置</value>
   </data>
   <data name="Settings_Global_Placeholder" xml:space="preserve">
-    <value>æœªé…ç½®</value>
+    <value>未配置</value>
   </data>
   <data name="Select_AtLeastOne" xml:space="preserve">
-    <value>è¯·é€‰æ‹©è‡³å°‘ä¸€ä¸ªå‘è¡Œç‰ˆè¿›è¡Œå¯¼å‡º</value>
+    <value>请选择至少一个发行版进行导出</value>
   </data>
   <data name="Picker_Unavailable" xml:space="preserve">
-    <value>æ–‡ä»¶é€‰æ‹©å™¨ä¸å¯ç”¨</value>
+    <value>文件选择器不可用</value>
   </data>
   <data name="Invalid_Folder" xml:space="preserve">
-    <value>æ— æ•ˆçš„æ–‡ä»¶å¤¹</value>
+    <value>无效的文件夹</value>
   </data>
   <data name="Import_NameLabel" xml:space="preserve">
-    <value>æ–°å‘è¡Œç‰ˆåç§°ï¼š</value>
+    <value>新发行版名称：</value>
   </data>
   <data name="Import_FolderLabel" xml:space="preserve">
-    <value>å®‰è£…æ–‡ä»¶å¤¹ï¼š</value>
+    <value>安装文件夹：</value>
   </data>
   <data name="Import_DialogTitle" xml:space="preserve">
-    <value>å¯¼å…¥å‘è¡Œç‰ˆ</value>
+    <value>导入发行版</value>
   </data>
   <data name="Import_Action" xml:space="preserve">
-    <value>å¯¼å…¥</value>
+    <value>导入</value>
   </data>
   <data name="Import_InvalidFile" xml:space="preserve">
-    <value>.tar æ–‡ä»¶æ— æ•ˆæˆ–ä¸å­˜åœ¨</value>
+    <value>.tar 文件无效或不存在</value>
   </data>
   <data name="Import_InvalidName" xml:space="preserve">
-    <value>å‘è¡Œç‰ˆåç§°æ— æ•ˆ</value>
+    <value>发行版名称无效</value>
   </data>
   <data name="Import_InvalidFolder" xml:space="preserve">
-    <value>å®‰è£…æ–‡ä»¶å¤¹æ— æ•ˆ</value>
+    <value>安装文件夹无效</value>
   </data>
   <data name="Confirm_Delete_Title" xml:space="preserve">
-    <value>æ³¨é”€å‘è¡Œç‰ˆ</value>
+    <value>注销发行版</value>
   </data>
   <data name="Confirm_Delete_Single" xml:space="preserve">
-    <value>ç¡®å®šè¦åˆ é™¤ '{0}' å—ï¼Ÿæ­¤æ“ä½œä¸å¯æ’¤é”€ã€‚</value>
+    <value>确定要删除 '{0}' 吗？此操作不可撤销。</value>
   </data>
   <data name="Confirm_Delete_Multi" xml:space="preserve">
-    <value>ç¡®å®šè¦åˆ é™¤ï¼š{0} å—ï¼Ÿæ­¤æ“ä½œä¸å¯æ’¤é”€ã€‚</value>
+    <value>确定要删除：{0} 吗？此操作不可撤销。</value>
   </data>
   <data name="Action_Unregister" xml:space="preserve">
-    <value>æ³¨é”€</value>
+    <value>注销</value>
   </data>
   <data name="Confirm_Stop_Title" xml:space="preserve">
-    <value>ç»ˆæ­¢å‘è¡Œç‰ˆ</value>
+    <value>终止发行版</value>
   </data>
   <data name="Confirm_Stop_Multi" xml:space="preserve">
-    <value>ç¡®å®šè¦ç»ˆæ­¢ï¼š{0} å—ï¼Ÿ</value>
+    <value>确定要终止：{0} 吗？</value>
   </data>
   <data name="Action_Terminate" xml:space="preserve">
-    <value>ç»ˆæ­¢</value>
+    <value>终止</value>
   </data>
   <data name="Distro_Terminated" xml:space="preserve">
-    <value>å‘è¡Œç‰ˆ {0} å·²ç»ˆæ­¢</value>
+    <value>发行版 {0} 已终止</value>
   </data>
   <data name="About_Copyright" xml:space="preserve">
-    <value>Â© 2024 Alfonso Pisicchio</value>
+    <value>© 2024 Alfonso Pisicchio</value>
   </data>
   <data name="Settings_Title" xml:space="preserve">
-    <value>å…¨å±€è®¾ç½®</value>
+    <value>全局设置</value>
   </data>
   <data name="Save" xml:space="preserve">
-    <value>ä¿å­˜</value>
+    <value>保存</value>
   </data>
   <data name="Cancel" xml:space="preserve">
-    <value>å–æ¶ˆ</value>
+    <value>取消</value>
   </data>
   <data name="Import_Completed" xml:space="preserve">
     <value>å¯¼å…¥å®Œæˆï¼š{0}</value>
