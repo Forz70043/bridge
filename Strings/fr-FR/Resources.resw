@@ -10,7 +10,7 @@
     <value>Erreur d'exportation {0} : {1}</value>
   </data>
   <data name="Export_StoppingFirst" xml:space="preserve">
-    <value>Arret de {0} avant l'exportation...</value>
+    <value>Arrêt de {0} avant l'exportation...</value>
   </data>
   <data name="Export_InProgress" xml:space="preserve">
     <value>Exportation de {0} en cours...</value>
@@ -34,13 +34,13 @@
     <value>Paramètres</value>
   </data>
   <data name="Tray_About" xml:space="preserve">
-    <value>�? propos</value>
+    <value>À propos</value>
   </data>
   <data name="Tray_Exit" xml:space="preserve">
     <value>Quitter</value>
   </data>
   <data name="About_Title" xml:space="preserve">
-    <value>�? propos de Bridge</value>
+    <value>À propos de Bridge</value>
   </data>
   <data name="About_Content" xml:space="preserve">
     <value>Bridge - gestionnaire WSL natif</value>
