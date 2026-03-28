@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -356,13 +357,17 @@ namespace Bridge
             public string DefaultUser { get; set; } = string.Empty;
         }
 
+        [JsonSerializable(typeof(Dictionary<string, DistroSettings>))]
+        [JsonSourceGenerationOptions(WriteIndented = true)]
+        private partial class DistroSettingsContext : JsonSerializerContext { }
+
         private DistroSettings LoadSettingsFor(string distroName)
         {
             try
             {
                 if (_settingsCache.TryGetValue(distroName, out var cached)) return cached;
                 if (!File.Exists(SettingsPath)) return new DistroSettings();
-                var all = JsonSerializer.Deserialize<Dictionary<string, DistroSettings>>(File.ReadAllText(SettingsPath)) ?? new Dictionary<string, DistroSettings>(StringComparer.OrdinalIgnoreCase);
+                var all = JsonSerializer.Deserialize(File.ReadAllText(SettingsPath), DistroSettingsContext.Default.DictionaryStringDistroSettings) ?? new Dictionary<string, DistroSettings>(StringComparer.OrdinalIgnoreCase);
                 if (all.TryGetValue(distroName, out var s)) { _settingsCache[distroName] = s; return s; }
                 return new DistroSettings();
             }
@@ -377,10 +382,10 @@ namespace Bridge
                 Dictionary<string, DistroSettings> all = new Dictionary<string, DistroSettings>(StringComparer.OrdinalIgnoreCase);
                 if (File.Exists(SettingsPath))
                 {
-                    all = JsonSerializer.Deserialize<Dictionary<string, DistroSettings>>(File.ReadAllText(SettingsPath)) ?? all;
+                    all = JsonSerializer.Deserialize(File.ReadAllText(SettingsPath), DistroSettingsContext.Default.DictionaryStringDistroSettings) ?? all;
                 }
                 all[distroName] = settings;
-                File.WriteAllText(SettingsPath, JsonSerializer.Serialize(all, new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(SettingsPath, JsonSerializer.Serialize(all, DistroSettingsContext.Default.DictionaryStringDistroSettings));
                 _settingsCache[distroName] = settings;
             }
             catch { }
