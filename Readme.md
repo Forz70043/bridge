@@ -4,7 +4,7 @@
 
 Bridge is a high-performance desktop application built with **C# 12**, **WinUI 3** (Windows App SDK 1.8), and **.NET 8**. It provides a sleek, Docker Desktop-inspired interface to manage your Windows Subsystem for Linux (WSL) distributions with zero overhead.
 
-> **Unpackaged app** — Bridge runs as a standalone executable (no MSIX install required). Publish produces a single, self-contained, trimmed `.exe`.
+> **Unpackaged app** — Bridge runs as a standalone executable (no MSIX install required). Download the ZIP, extract, and run — no installer, no runtime needed.
 
 ---
 
@@ -34,8 +34,11 @@ Bridge is a high-performance desktop application built with **C# 12**, **WinUI 3
 ### Installation
 
 1. Go to the [Releases](https://github.com/Forz70043/bridge/releases) page.
-2. Download the latest `Bridge.exe` (self-contained, single-file).
-3. Run — no installer required.
+2. Download the latest **`Bridge-vX.Y.Z-win-x64.zip`**.
+3. Extract the ZIP to a folder of your choice (e.g. `C:\Bridge`).
+4. Run **`Bridge.exe`** — no installer, no runtime needed.
+
+> **Note:** if Windows blocks the app after download, right-click `Bridge.exe` → **Properties** → check **Unblock** → OK.
 
 ---
 
@@ -57,10 +60,14 @@ Bridge is a high-performance desktop application built with **C# 12**, **WinUI 3
 The project includes a ready-to-use publish profile (`FolderProfile.pubxml`):
 
 ```powershell
-dotnet publish -c Release -r win-x64 -p:PublishProfile=Properties\PublishProfiles\FolderProfile.pubxml
+dotnet publish Bridge.csproj -p:Platform=x64 -p:PublishProfile=Properties\PublishProfiles\FolderProfile.pubxml
 ```
 
-This produces a **self-contained, single-file, trimmed** executable in `build\`.
+This produces a **self-contained, ReadyToRun** build in `build\`. To create the release ZIP:
+
+```powershell
+Compress-Archive -Path build\* -DestinationPath Bridge-v1.0.1-win-x64.zip -Force
+```
 
 ### Generate the app icon
 
@@ -99,7 +106,7 @@ The tray / application icon is generated from `Assets\linux_image_transparent.jp
 - [x] System tray icon with context menu.
 - [x] Per-distro settings (default directory / user).
 - [x] Localization (5 languages).
-- [x] Single-file self-contained publish.
+- [x] Self-contained publish (no runtime required).
 - [ ] Resource monitoring (CPU / RAM usage per distro).
 - [ ] Custom mount point management.
 - [ ] Snapshot system (Checkpoints).
