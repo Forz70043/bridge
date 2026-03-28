@@ -16,10 +16,10 @@
     <Company>Alfonso Pisicchio</Company>
     <Authors>Alfonso Pisicchio</Authors>
     <Description>Native WSL manager for Windows</Description>
-    <Copyright>© 2025 Alfonso Pisicchio</Copyright>
-    <Version>1.0.0</Version>
-    <FileVersion>1.0.0.0</FileVersion>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Copyright>© 2026 Alfonso Pisicchio</Copyright>
+    <Version>1.0.1</Version>
+    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
     <!-- Tray icon implemented via Win32 Shell_NotifyIcon; do not enable Windows Forms -->
     <EnableMsixTooling>true</EnableMsixTooling>
     <!-- Unpackaged mode required for PublishSingleFile support -->
