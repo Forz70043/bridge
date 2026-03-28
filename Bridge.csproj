@@ -10,10 +10,26 @@
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
+
+    <!-- Assembly metadata (shown in file Properties → Details and UAC prompt) -->
+    <Product>Bridge</Product>
+    <Company>Alfonso Pisicchio</Company>
+    <Authors>Alfonso Pisicchio</Authors>
+    <Description>Native WSL manager for Windows</Description>
+    <Copyright>© 2026 Alfonso Pisicchio</Copyright>
+    <Version>1.0.1</Version>
+    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
     <!-- Tray icon implemented via Win32 Shell_NotifyIcon; do not enable Windows Forms -->
     <EnableMsixTooling>true</EnableMsixTooling>
     <!-- Unpackaged mode required for PublishSingleFile support -->
     <WindowsPackageType>None</WindowsPackageType>
+    <!-- Self-contained: bundle the Windows App SDK runtime (no separate runtime install needed) -->
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- DeploymentManager requires package identity (MSIX) — must be false for unpackaged apps -->
+    <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+    <!-- Unpackaged WinUI 3 expects PRI file named "resources.pri" (not "Bridge.pri") -->
+    <PriIndexName></PriIndexName>
     <Nullable>enable</Nullable>
     <!-- Disable implicit PRIResource items so we can include Strings\**\*.resw explicitly -->
     <EnableDefaultPriItems>false</EnableDefaultPriItems>
@@ -86,4 +102,18 @@
     <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
     <!-- Application icon: Assets\Icons\app.ico is generated from Assets\linux_image_transparent.jpg (see repository documentation for generation steps) -->
   </PropertyGroup>
+
+  <!-- Unpackaged WinUI 3 requires "resources.pri" next to the exe.
+       The self-contained targets set PriIndexName to empty which should produce it,
+       but as a safety net, copy Bridge.pri → resources.pri after build/publish. -->
+  <Target Name="EnsureResourcesPri" AfterTargets="Build;Publish">
+    <Copy SourceFiles="$(OutputPath)\Bridge.pri"
+          DestinationFiles="$(OutputPath)\resources.pri"
+          Condition="Exists('$(OutputPath)\Bridge.pri') and !Exists('$(OutputPath)\resources.pri')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(PublishDir)\Bridge.pri"
+          DestinationFiles="$(PublishDir)\resources.pri"
+          Condition="'$(PublishDir)'!='' and Exists('$(PublishDir)\Bridge.pri') and !Exists('$(PublishDir)\resources.pri')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
